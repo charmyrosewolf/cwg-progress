@@ -1,5 +1,6 @@
 import { getTime } from '@/utils';
-// import Image from 'next/image'; // Any images need the basePath
+// Any images need the basePath
+// import Image from 'next/image';
 import styles from './page.module.css';
 
 export default async function Page() {
