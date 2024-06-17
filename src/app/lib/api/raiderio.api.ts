@@ -1,6 +1,7 @@
 /** Raider.io APIv1 */
 /** https://raider.io/api# */
 
+import { isDevelopment } from '../helper';
 import { RAID_DIFFICULTY, GuildInfo } from '../types';
 
 const GUILD_URL = 'https://raider.io/api/v1/guilds';
@@ -48,16 +49,27 @@ export async function fetchGuildProgressionByDifficulty(
 ): Promise<RawData> {
   const headers = getHeaders();
 
-  const realmSlug = guild.realm.toLowerCase().replaceAll(' ', '-');
+  const realmSlug = guild.realm
+    .toLowerCase()
+    .replaceAll("'", '')
+    .replaceAll(' ', '-');
   const guildName = guild.name.toLowerCase();
 
   const queryParams = `region=${guild.region}&realm=${realmSlug}&name=${guildName}&fields=raid_encounters:${raidSlug}:${difficulty},raid_progression,raid_rankings}`;
   const url = `${GUILD_URL}/profile?${encodeURI(queryParams)}`;
 
-  const options = {
+  let options: any = {
     method: 'GET',
     headers: headers
   };
+
+  if (!isDevelopment()) {
+    options.cache = 'no-store';
+  } else {
+    // uncomment only to refresh cache
+    // we don't want to over request third-party apis on development
+    // options.next = { revalidate: 1 };
+  }
 
   const res = await fetch(url, options);
 

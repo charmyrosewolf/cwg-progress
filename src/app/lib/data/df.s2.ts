@@ -2,6 +2,9 @@
 
 import { Encounter, RaidInfo } from '../types';
 
+export const SEASON_START_DATE = '2023-05-10T12:00:00.000Z';
+export const SEASON_END_DATE = '2023-11-14T12:00:00.000Z';
+
 const INSTANCE_ID = 2569;
 // ENCOUNTER_IDS
 const KAZZARA_THE_HELLFORGED_ID = 2688;

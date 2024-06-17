@@ -18,6 +18,8 @@ const sizes = {
 const variantCustom = definePartsStyle((props) => {
   const { colorScheme: c, colorMode } = props;
 
+  console.log('colorMode', c, colorMode);
+
   return {
     tr: {
       'td:first-of-type': {
@@ -45,9 +47,12 @@ const variantCustom = definePartsStyle((props) => {
     },
     tbody: {
       tr: {
+        'th, td': {
+          borderBottomWidth: '1px',
+          borderRightWidth: '1px'
+        },
         '&:nth-of-type(odd)': {
           'th, td': {
-            borderBottomWidth: '1px',
             borderColor: colorMode === 'light' ? `${c}.100` : `${c}.700`,
             width: '1px'
           },
@@ -57,7 +62,6 @@ const variantCustom = definePartsStyle((props) => {
         },
         '&:nth-of-type(even)': {
           'th, td': {
-            borderBottomWidth: '1px',
             borderColor: colorMode === 'light' ? `${c}.300` : `${c}.600`
           },
           td: {

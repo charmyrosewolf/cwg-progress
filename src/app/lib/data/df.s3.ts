@@ -1,6 +1,11 @@
 /** Amirdrassil, The Dream's Hope **/
 import { Encounter, RaidInfo } from '../types';
 
+export const SEASON_START_DATE = '2023-11-14T12:00:00.000Z';
+export const SEASON_END_DATE = '2024-04-23T12:00:00.000Z';
+
+const INSTANCE_ID = '';
+
 // ENCOUNTER_IDS
 const GNARLROOT_ID = 2820;
 const IGIRA_THE_CRUEL_ID = 2709;

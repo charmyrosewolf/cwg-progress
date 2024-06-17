@@ -1,11 +1,16 @@
-/* theme.ts */
-import { extendTheme } from '@chakra-ui/react';
+import { extendTheme, type ThemeConfig } from '@chakra-ui/react';
+
+// custome themes
 import { tableTheme } from './theme/table';
 
-export const theme = extendTheme({
+const theme = extendTheme({
   fonts: {
     heading: 'var(--font-inter)',
     body: 'var(--font-inter)'
   },
-  components: { Table: tableTheme }
-});
+  components: { Table: tableTheme },
+  initialColorMode: 'light',
+  useSystemColorMode: false
+} as ThemeConfig);
+
+export default theme;

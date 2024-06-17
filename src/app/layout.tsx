@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import { Providers } from './providers';
 import { fonts } from './fonts';
 import './globals.css';
-import Link from 'next/link';
+import { Box } from '@chakra-ui/react';
+import Header from './components/header';
+import Footer from './components/footer';
 
 export const metadata: Metadata = {
   title: 'CWG Progress',
@@ -11,27 +13,35 @@ export const metadata: Metadata = {
     'A website to track progress of raid progress in the Christian WoW guilds community'
 };
 
-export default function RootLayout({
-  children
-}: Readonly<{
+type LayoutProps = Readonly<{
   children: React.ReactNode;
-}>) {
+  home?: boolean;
+}>;
+
+export default function RootLayout({ children, home }: LayoutProps) {
   return (
     <html lang='en' className={fonts.inter.variable}>
-      <body>
+      {/* <body style={{ maxHeight: '100vh', overflow: 'hidden' }}> */}
+      <body
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          height: '100vh',
+          minHeight: '100vh',
+          maxWidth: '100vw'
+        }}
+      >
         <Providers>
           {/* header */}
-          <header>CWG Progress</header>
+          <Header isHome={!!home} />
           {/* main */}
-          <main>{children}</main>
+          <Box as='main' flexGrow='1' w='100vw' maxW='100vw' p='0 2rem'>
+            {children}
+          </Box>
           {/* footer */}
-          <footer>
-            Made with &hearts; and
-            <Link href={'https://raider.io'} target='_blank'>
-              raider.io
-            </Link>
-            by Charmy Rosewolf
-          </footer>
+          <Footer></Footer>
         </Providers>
       </body>
     </html>
