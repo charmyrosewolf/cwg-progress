@@ -1,6 +1,6 @@
 // Any images need the basePath
 // import Image from 'next/image';
-import { ProgressReport } from '../../lib/types';
+import { ProgressReport } from '@/lib/types';
 import { Box } from '@chakra-ui/react';
 import RaidProgressTable from '@/app/components/raid-progress-table';
 

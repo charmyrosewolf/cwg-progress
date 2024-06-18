@@ -11,10 +11,10 @@ import {
   Box,
   HStack
 } from '@chakra-ui/react';
-import { RAIDS } from '../lib/data';
+import { RAIDS } from '@/lib/data';
 import { Link } from '@chakra-ui/next-js';
 import { ToggleColorMode } from './toggle-color-code';
-import { isDevelopment } from '../lib/helper';
+import { isDevelopment } from '@/lib/helper';
 
 const name = 'CWG Progress';
 

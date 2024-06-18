@@ -1,11 +1,11 @@
 // Any images need the basePath
 // import Image from 'next/image';
-import { ProgressReport } from './lib/types';
+import { ProgressReport } from '@/lib/types';
 import { Box } from '@chakra-ui/react';
 
-import { generateProgressReports } from './lib/report-progress.service';
+import { generateProgressReports } from '@/lib/report-progress.service';
 import RaidProgressTable from './components/raid-progress-table';
-import { isDevelopment } from './lib/helper';
+import { isDevelopment } from '@/lib/helper';
 
 export default async function Page() {
   const reports = await generateProgressReports();

@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { generateProgressReportBySlug } from '@/app/lib/report-progress.service';
+import { generateProgressReportBySlug } from '@/lib/report-progress.service';
 import RaidProgress from './raid-progress';
-import { RAIDS } from '@/app/lib/data';
+import { RAIDS } from '@/lib/data';
 
 // export async function generateMetadata({ params }: any): Promise<Metadata> {
 //   const { slug } = params;

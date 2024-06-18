@@ -1,7 +1,3 @@
-// 'use client';
-// import { Link } from '@chakra-ui/next-js';
-// import { Flex, Stack, Text } from '@chakra-ui/react';
-
 import {
   Table,
   Thead,
@@ -13,7 +9,7 @@ import {
   TableCaption,
   TableContainer
 } from '@chakra-ui/react';
-import { GuildRaidProgress, ProgressReport, RaidInfo } from '../lib/types';
+import { GuildRaidProgress, ProgressReport, RaidInfo } from '@/lib/types';
 
 type RaidProgressTableProps = {
   report: ProgressReport;
