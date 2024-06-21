@@ -17,7 +17,7 @@ export default async function Page() {
 type HomeProps = { progressReports: ProgressReport[] };
 
 async function Home({ progressReports }: HomeProps) {
-  await sendDiscordMessage('Hello World!');
+  // await sendDiscordMessage('Hello World!');
 
   return (
     <Box>
