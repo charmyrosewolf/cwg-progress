@@ -47,6 +47,7 @@ export type GuildInfo = {
 
 /** Progress Report Types */
 export type GuildRaidEncounter = {
+  encounterID: number;
   slug: string;
   name: string;
   maxDifficultyDefeated: RAID_DIFFICULTY | null;

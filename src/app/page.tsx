@@ -3,15 +3,21 @@
 import { ProgressReport } from '@/lib/types';
 import { Box } from '@chakra-ui/react';
 
-import { generateProgressReports } from '@/lib/report-progress.service';
+import { generateProgressReportBySlug } from '@/lib/report-progress.service';
 import RaidProgressTable from './components/raid-progress-table';
 import { isDevelopment } from '@/lib/helper';
-import { sendDiscordMessage } from './_actions/discord';
+// import { sendDiscordMessage } from './_actions/discord';
+import { RAIDS } from '@/lib/data';
 
 export default async function Page() {
-  const reports = await generateProgressReports();
+  const progressReportsPromise = RAIDS.map(async (r) => {
+    return await generateProgressReportBySlug(r.slug);
+  });
 
-  return <Home progressReports={reports}></Home>;
+  const reports = await Promise.all(progressReportsPromise);
+  const filteredReports = reports.filter((r) => r !== null) as ProgressReport[];
+
+  return <Home progressReports={filteredReports}></Home>;
 }
 
 type HomeProps = { progressReports: ProgressReport[] };

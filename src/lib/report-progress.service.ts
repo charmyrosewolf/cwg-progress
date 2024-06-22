@@ -36,14 +36,18 @@ const wlogsDifficultiesMap: WLogsDifficultiesMapType = {
   '5': 'mythic'
 };
 
-const FIGHT_QUERY = `query ($name: String, $server: String, $region: String, $encounterID: Int, $startTime: Float, $endTime: Float) {
+// CAREFUL ABOUT RAISING THIS NUMBER DUE TO RATE LIMITS
+const REPORT_LIMIT = 5;
+
+const FIGHT_QUERY = `query ($name: String, $server: String, $region: String, $startTime: Float, $endTime: Float) {
 	reportData {
-		reports(guildName: $name, guildServerSlug: $server, guildServerRegion: $region, limit: 5, startTime: $startTime, endTime: $endTime) {
+		reports(guildName: $name, guildServerSlug: $server, guildServerRegion: $region, limit: ${REPORT_LIMIT}, startTime: $startTime, endTime: $endTime) {
 			data {
 				code,
 				startTime,
 				endTime
-				fights(encounterID: $encounterID) {
+				fights {
+					encounterID,
 					name,
 					startTime,
 					endTime,
@@ -59,6 +63,7 @@ const FIGHT_QUERY = `query ($name: String, $server: String, $region: String, $en
 
 // RAW DATA TYPES
 type FightData = {
+  encounterID: number | undefined;
   name: string;
   startTime: number;
   endTime: number;
@@ -77,6 +82,7 @@ type PulledReportData = {
 
 type FlattenedFightData = {
   code: string;
+  encounterID: number | undefined;
   name: string;
   startTime: Date;
   endTime: Date;
@@ -143,6 +149,48 @@ async function getBestPullData(
   return bestPull;
 }
 
+type FightMap = Map<number, FlattenedFightData | FlattenedFightData[]>;
+
+async function getWlogReportFightsByGuild(
+  queryVars: any
+): Promise<FightMap | null> {
+  const queryResults = await postQuery(
+    FIGHT_QUERY,
+    queryVars,
+    `FAILED TO FETCH FIGHTS FOR ${queryVars.name}`
+  );
+
+  const data: PulledReportData[] = queryResults.data?.reportData?.reports?.data;
+
+  if (!data) return null;
+
+  const flattenedEncounters =
+    data && data.length ? processWlogReports(data) : [];
+
+  const fightMap: FightMap = flattenedEncounters.reduce(
+    (acc: FightMap, fight, index) => {
+      const encounterID = fight.encounterID as number;
+      if (acc && acc.has(encounterID)) {
+        acc.set(encounterID, [...(acc.get(encounterID) as []), fight]);
+      } else {
+        acc.set(encounterID, [fight]);
+      }
+      return acc;
+    },
+    new Map() as FightMap
+  );
+
+  fightMap.forEach((fights, encounterId) => {
+    (fights as FlattenedFightData[]).sort(sortByBestPulls);
+
+    let bestPull = (fights as FlattenedFightData[])[0];
+
+    fightMap.set(encounterId, bestPull);
+  });
+
+  return fightMap;
+}
+
 async function createGuildProgressionReport(
   raid: RaidInfo,
   guild: GuildInfo
@@ -165,7 +213,7 @@ async function createGuildProgressionReport(
     'mythic'
   );
 
-  const realmSlug = guild.realm.toLowerCase().replaceAll("'", '');
+  // TODO: try to send back in tuple [stats, progData]
   const raidStats = normalProgress.raid_progression[raid.slug];
 
   const hasAnyKills =
@@ -178,17 +226,9 @@ async function createGuildProgressionReport(
     return null;
   }
 
-  const queryVars: BossDataQueryVars = {
-    encounterID: 0,
-    name: guild.name,
-    server: realmSlug,
-    region: guild.region,
-    startTime: new Date(SEASON_START_DATE).getTime(),
-    endTime: SEASON_END_DATE ? new Date(SEASON_START_DATE).getTime() : undefined
-  };
-
+  // raid encounters
   // For each POSSIBLE encounter, determine the highest difficulty defeated, if any
-  const raidEncountersPromises = raid.encounters.map(async (pe) => {
+  const raidEncounters = raid.encounters.map((pe) => {
     const findByBossName = (e: any) => e.name === pe.name;
 
     const nBoss = normalProgress.raid_encounters?.find(findByBossName);
@@ -206,50 +246,15 @@ async function createGuildProgressionReport(
 
     const bossDefeated = difficulties[maxIndexDefeated];
 
-    // TODO: here would be the opportunity to fetch best pull info if maxDifficultyDefeated = null
-    //   and add more properties to GuildRaidEncounter type
-
-    // warcraft logs best pull?
-
-    let maxDifficultyAttempted = null;
-    let lowestBossPercentage = null;
-
-    queryVars.encounterID = pe.id;
-    const bestPull = await getBestPullData(queryVars);
-
-    // console.log(maxDifficultyDefeated);
-    // console.log('best pull', bestPull);
-
-    if (bestPull) {
-      const diff = `${bestPull.difficulty}` as WLOGS_RAID_DIFFICULTY;
-
-      const attempted = wlogsDifficultiesMap[diff];
-
-      if (
-        maxDifficultyDefeated &&
-        difficultiesMap[attempted] >= difficultiesMap[maxDifficultyDefeated]
-      ) {
-        maxDifficultyAttempted = attempted;
-        lowestBossPercentage = bestPull.bossPercentage;
-      } else {
-        // wlogs has an inconsistency -- guild is likely not uploading reports
-      }
-    }
-
     return {
+      encounterID: pe.id,
       slug: pe.rSlug,
       name: pe.name,
       maxDifficultyDefeated: maxDifficultyDefeated,
       defeatedAt:
-        bossDefeated && bossDefeated.defeatedAt
-          ? bossDefeated.defeatedAt
-          : null,
-      maxDifficultyAttempted,
-      lowestBossPercentage
+        bossDefeated && bossDefeated.defeatedAt ? bossDefeated.defeatedAt : null
     } as GuildRaidEncounter;
   });
-
-  const raidEncounters = await Promise.all(raidEncountersPromises);
 
   const guildProgress: GuildRaidProgress = {
     guild: guild,
@@ -268,6 +273,44 @@ async function createGuildProgressionReport(
   return guildProgress;
 }
 
+export function updateRaidEncountersWithWlogs(
+  bestPulls: FightMap,
+  encounters: GuildRaidEncounter[]
+): GuildRaidEncounter[] {
+  // iterate over each raid encounter
+  const newEncounters: GuildRaidEncounter[] = encounters.map((re) => {
+    let encounterID = re.encounterID;
+    let maxDifficultyAttempted = null;
+    let lowestBossPercentage = null;
+
+    let bestPull = bestPulls.get(encounterID) as FlattenedFightData;
+
+    if (bestPull) {
+      const diff = `${bestPull.difficulty}` as WLOGS_RAID_DIFFICULTY;
+
+      const attempted = wlogsDifficultiesMap[diff];
+
+      if (
+        re.maxDifficultyDefeated &&
+        difficultiesMap[attempted] >= difficultiesMap[re.maxDifficultyDefeated]
+      ) {
+        maxDifficultyAttempted = attempted;
+        lowestBossPercentage = bestPull.bossPercentage;
+      } else {
+        // wlogs has an inconsistency -- guild is likely not uploading reports
+      }
+    }
+
+    return {
+      ...re,
+      maxDifficultyAttempted,
+      lowestBossPercentage
+    };
+  });
+
+  return newEncounters;
+}
+
 /* Generates a report for a raid */
 export async function generateProgressReport(
   raid: RaidInfo
@@ -281,9 +324,34 @@ export async function generateProgressReport(
   // Fetch raid progress per guild
   for (const g of GUILDS) {
     const result = await createGuildProgressionReport(raid, g);
-    if (result) {
-      raidProgression.push(result);
+    if (!result) {
+      continue;
     }
+
+    const queryVars: Omit<BossDataQueryVars, 'encounterID'> = {
+      name: g.name,
+      server: g.realm.toLowerCase().replaceAll("'", ''),
+      region: g.region,
+      startTime: new Date(SEASON_START_DATE).getTime(),
+      endTime: SEASON_END_DATE
+        ? new Date(SEASON_START_DATE).getTime()
+        : undefined
+    };
+
+    const bestPulls: FightMap | null = await getWlogReportFightsByGuild(
+      queryVars
+    );
+
+    if (bestPulls) {
+      const raidEncounters = updateRaidEncountersWithWlogs(
+        bestPulls,
+        result.raidEncounters
+      );
+
+      result.raidEncounters = raidEncounters;
+    }
+
+    raidProgression.push(result);
   }
 
   const result: ProgressReport = {
@@ -294,35 +362,12 @@ export async function generateProgressReport(
   return result;
 }
 
-/* Generates all reports for current season */
-export async function generateProgressReports(): Promise<ProgressReport[]> {
-  const results: ProgressReport[] = [];
-
-  // Fetch progress per raid
-  for (const r of RAIDS) {
-    let raidProgression: GuildRaidProgress[] = [];
-
-    // Fetch raid progress per guild
-    for (const g of GUILDS) {
-      const result = await createGuildProgressionReport(r, g);
-      if (result) {
-        raidProgression.push(result);
-      }
-    }
-
-    results.push({
-      raid: r,
-      raidProgression: raidProgression
-    } as ProgressReport);
-  }
-
-  return results;
-}
-
 /* Generates a reports for current season by raid name slug */
 export async function generateProgressReportBySlug(
   slug: string
 ): Promise<ProgressReport | null> {
+  console.log('\ngenerating report for:', slug);
+
   const raid = RAIDS.find((r) => r.slug === slug);
 
   // raid may not exist
