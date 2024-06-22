@@ -26,7 +26,8 @@ export async function postQuery(
     body: JSON.stringify({
       query: query,
       variables: variables
-    })
+    }),
+    next: { revalidate: 3600 }
   };
 
   const res = await fetch(PUBLIC_URL, options);
@@ -37,6 +38,6 @@ export async function postQuery(
     return data;
   } else {
     console.error(errorMessage, data);
-    return Promise.reject(data);
+    return Promise.resolve(null);
   }
 }

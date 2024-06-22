@@ -1,7 +1,6 @@
 /** Raider.io APIv1 */
 /** https://raider.io/api# */
 
-import { isDevelopment } from '../helper';
 import { RAID_DIFFICULTY, GuildInfo } from '../types';
 
 const GUILD_URL = 'https://raider.io/api/v1/guilds';
@@ -60,16 +59,9 @@ export async function fetchGuildProgressionByDifficulty(
 
   let options: any = {
     method: 'GET',
-    headers: headers
+    headers: headers,
+    next: { revalidate: 3600 }
   };
-
-  if (!isDevelopment()) {
-    options.cache = 'no-store';
-  } else {
-    // uncomment only to refresh cache
-    // we don't want to over request third-party apis on development
-    // options.next = { revalidate: 1 };
-  }
 
   const res = await fetch(url, options);
 
