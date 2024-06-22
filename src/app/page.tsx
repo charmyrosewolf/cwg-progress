@@ -6,7 +6,7 @@ import { Box } from '@chakra-ui/react';
 import { generateProgressReportBySlug } from '@/lib/report-progress.service';
 import RaidProgressTable from './components/raid-progress-table';
 import { isDevelopment } from '@/lib/helper';
-// import { sendDiscordMessage } from './_actions/discord';
+import { sendDiscordMessage } from './_actions/discord';
 import { RAIDS } from '@/lib/data';
 
 export default async function Page() {
@@ -23,7 +23,7 @@ export default async function Page() {
 type HomeProps = { progressReports: ProgressReport[] };
 
 async function Home({ progressReports }: HomeProps) {
-  // await sendDiscordMessage('Hello World!');
+  await sendDiscordMessage('Hello World! This deployment has been updated');
 
   return (
     <Box>
