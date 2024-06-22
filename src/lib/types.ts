@@ -75,4 +75,10 @@ export type GuildRaidProgress = {
 export type ProgressReport = {
   raid: RaidInfo;
   raidProgression: GuildRaidProgress[]; // each guilds progress for this raid
+  createdOn: Date; // date report was generated
 };
+
+/** constants **/
+
+// revalidate data every 4 hours for now
+export const REVALIDATION_TIME = 3600 * 4;

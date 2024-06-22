@@ -354,9 +354,12 @@ export async function generateProgressReport(
     raidProgression.push(result);
   }
 
+  // TODO: fetch wlogs for CWG
+
   const result: ProgressReport = {
     raid,
-    raidProgression: raidProgression
+    raidProgression: raidProgression,
+    createdOn: new Date()
   };
 
   return result;

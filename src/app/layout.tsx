@@ -6,6 +6,7 @@ import './globals.css';
 import { Box } from '@chakra-ui/react';
 import Header from './components/header';
 import Footer from './components/footer';
+import { REVALIDATION_TIME } from '@/lib/types';
 
 export const metadata: Metadata = {
   title: 'CWG Progress',
@@ -17,6 +18,8 @@ type LayoutProps = Readonly<{
   children: React.ReactNode;
   home?: boolean;
 }>;
+
+export const revalidate = REVALIDATION_TIME;
 
 export default function RootLayout({ children, home }: LayoutProps) {
   return (

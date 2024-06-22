@@ -67,15 +67,17 @@ export default function Header({ isHome }: HeaderProps) {
           <ToggleColorMode />
         </Box>
       </HStack>
-      <Stack direction={['column', 'row']} spacing={4}>
-        {RAIDS && isDevelopment()
-          ? RAIDS.map((r) => (
-              <Link key={`nav-${r.slug}`} href={`/progress/${r.slug}`}>
-                {r.name}
-              </Link>
-            ))
-          : null}
-      </Stack>
+      {!isHome ? (
+        <Stack direction={['column', 'row']} spacing={4}>
+          {RAIDS
+            ? RAIDS.map((r) => (
+                <Link key={`nav-${r.slug}`} href={`/raid/${r.slug}`}>
+                  {r.name}
+                </Link>
+              ))
+            : null}
+        </Stack>
+      ) : null}
     </Flex>
   );
 }
