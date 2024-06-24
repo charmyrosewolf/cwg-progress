@@ -8,7 +8,8 @@ import {
   DifficultiesMapType,
   WLogsDifficultiesMapType,
   WLOGS_RAID_DIFFICULTY,
-  BossDataQueryVars
+  BossDataQueryVars,
+  RaidProgressEvent
 } from './types';
 
 // TODO: update this each season.
@@ -21,6 +22,9 @@ import {
 
 import { fetchGuildProgressionByDifficulty } from './api/raiderio.api';
 import { postQuery } from './api/wlogs.api';
+import { sendDiscordMessage } from '@/app/_actions/discord';
+import { getHost } from './helper';
+import { CWG } from './data/guilds';
 
 const difficultiesArray: RAID_DIFFICULTY[] = ['normal', 'heroic', 'mythic'];
 
@@ -320,6 +324,8 @@ export async function generateProgressReport(
 
   // Fetch progress for raid
   let raidProgression: GuildRaidProgress[] = [];
+  const recentEvents: RaidProgressEvent[] = [];
+
 
   // Fetch raid progress per guild
   for (const g of GUILDS) {
@@ -348,18 +354,36 @@ export async function generateProgressReport(
         result.raidEncounters
       );
 
+      // todo: only collect recent kills for now, tracking new bests will be a littler trickier
+      const recent: RaidProgressEvent[] = raidEncounters
+        .filter((re) => re.defeatedAt)
+        .map((re) => {
+          return {
+            guildName: g.name,
+            bossName: re.name,
+            dateOccurred: new Date(re.defeatedAt)
+          };
+        });
+
+      recentEvents.push(...recent);
+
       result.raidEncounters = raidEncounters;
     }
 
     raidProgression.push(result);
   }
 
+  recentEvents.sort((a, b) => (a.dateOccurred < b.dateOccurred ? 1 : -1));
+
+  const top5Events = recentEvents.slice(0, 5);
+
   // TODO: fetch wlogs for CWG
 
   const result: ProgressReport = {
     raid,
     raidProgression: raidProgression,
-    createdOn: new Date()
+    createdOn: new Date(),
+    recentEvents: top5Events
   };
 
   return result;
@@ -376,5 +400,48 @@ export async function generateProgressReportBySlug(
   // raid may not exist
   if (!raid) return null;
 
-  return generateProgressReport(raid);
+  const report = await generateProgressReport(raid);
+
+  // collect events
+  // todo: can we cache this date and filter what we send by what came after it?
+  const last24Hours = new Date();
+  console.log(last24Hours.getDate());
+  last24Hours.setDate(last24Hours.getDate() - 7);
+  console.log(last24Hours, report?.recentEvents[0].dateOccurred);
+  const updates = report
+    ? report.recentEvents.filter((e) => e.dateOccurred > last24Hours)
+    : [];
+
+  console.log(updates.length);
+
+  if (updates.length) {
+    // sendUpdate(slug, updates);
+  }
+
+  sendUpdate(slug, updates);
+
+  return report;
+}
+
+export async function sendUpdate(slug: string, updates: RaidProgressEvent[]) {
+  const host = getHost();
+
+  const time = new Date();
+
+  // ADD RAID NAME to TITLE
+  let message = `# Updates for ${time.toDateString()}\n\n`;
+
+  for (const u of updates) {
+    message += `${u.guildName} defeated ${
+      u.bossName
+    } at ${u.dateOccurred.toDateString()}\n`;
+  }
+
+  message += `\nTo see the changes go to ${host}/raid/${slug}`;
+
+  console.log(message);
+
+  const message2 = `Hello World! This deployment has been updated at ${time.toDateString()} ${time.toLocaleTimeString()}. To see the changes go to ${host}/raid/${slug}`;
+
+  await sendDiscordMessage(message2);
 }

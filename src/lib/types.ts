@@ -72,10 +72,17 @@ export type GuildRaidProgress = {
   stats: GuildRaidProgressStats;
 };
 
+export type RaidProgressEvent = {
+  guildName: string;
+  bossName: string;
+  dateOccurred: Date;
+};
+
 export type ProgressReport = {
   raid: RaidInfo;
   raidProgression: GuildRaidProgress[]; // each guilds progress for this raid
   createdOn: Date; // date report was generated
+  recentEvents: RaidProgressEvent[];
 };
 
 /** constants **/
