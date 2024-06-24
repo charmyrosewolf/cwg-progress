@@ -418,7 +418,6 @@ export async function generateProgressReportBySlug(
     // sendUpdate(slug, updates);
   }
 
-  sendUpdate(slug, updates);
   // sendUpdate(slug, updates);
 
   return report;
