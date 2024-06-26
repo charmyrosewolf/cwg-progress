@@ -445,3 +445,40 @@ export async function sendUpdate(slug: string, updates: RaidProgressEvent[]) {
 
   await sendDiscordMessage(message2);
 }
+
+export async function sendDiscordUpdate() {
+  const host = getHost();
+
+  const time = new Date();
+
+  RAIDS.forEach(async ({ slug, name }) => {
+    let report = await generateProgressReportBySlug(slug);
+
+    if (!report) return;
+
+    const last24Hours = new Date();
+    console.log(last24Hours.getDate());
+    last24Hours.setDate(last24Hours.getDate() - 7);
+    console.log(last24Hours, report.recentEvents[0].dateOccurred);
+    const updates = report
+      ? report.recentEvents.filter((e) => e.dateOccurred > last24Hours)
+      : [];
+
+    // ADD RAID NAME to TITLE
+    let message = `# Updates for ${name} ${time.toDateString()}\n\n`;
+
+    for (const u of updates) {
+      message += `${u.guildName} defeated ${
+        u.bossName
+      } at ${u.dateOccurred.toDateString()}\n`;
+    }
+
+    message += `\nTo see the changes go to ${host}/raid/${slug}`;
+
+    console.log(message);
+
+    const message2 = `Hello World! This deployment has been updated at ${time.toDateString()} ${time.toLocaleTimeString()}. To see the changes go to ${host}/raid/${slug}`;
+
+    await sendDiscordMessage(message);
+  });
+}
