@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  await sendDiscordUpdate();
+  const response = await sendDiscordUpdate();
 
-  return Response.json({ success: true });
+  return Response.json(response);
 }

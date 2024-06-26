@@ -74,6 +74,7 @@ export type GuildRaidProgress = {
 
 export type RaidProgressEvent = {
   guildName: string;
+  raidName: string;
   bossName: string;
   dateOccurred: Date;
 };

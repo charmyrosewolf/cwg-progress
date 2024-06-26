@@ -5,7 +5,7 @@ export const sendDiscordMessage = async (message: string) => {
     // A fetch request to send data through the discord
     // webhook, and display it as a message in your
     // discord channel
-    await fetch(process.env.DISCORD_WEBHOOK_URL as string, {
+    const response = await fetch(process.env.DISCORD_WEBHOOK_URL as string, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -14,8 +14,11 @@ export const sendDiscordMessage = async (message: string) => {
         content: message
       })
     });
+
+    return response;
   } catch (err: any) {
     // Just in case :)
-    console.log(err.message);
+    console.error(err.message);
+    return err;
   }
 };

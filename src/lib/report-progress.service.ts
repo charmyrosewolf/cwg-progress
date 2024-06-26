@@ -360,6 +360,7 @@ export async function generateProgressReport(
         .map((re) => {
           return {
             guildName: g.name,
+            raidName: raid.name,
             bossName: re.name,
             dateOccurred: new Date(re.defeatedAt)
           };
@@ -405,45 +406,56 @@ export async function generateProgressReportBySlug(
   // collect events
   // todo: can we cache this date and filter what we send by what came after it?
   const last24Hours = new Date();
-  console.log(last24Hours.getDate());
+  // console.log(last24Hours.getDate());
   last24Hours.setDate(last24Hours.getDate() - 7);
-  console.log(last24Hours, report?.recentEvents[0].dateOccurred);
+  // console.log(last24Hours, report?.recentEvents[0].dateOccurred);
   const updates = report
     ? report.recentEvents.filter((e) => e.dateOccurred > last24Hours)
     : [];
 
-  console.log(updates.length);
-
-  if (updates.length) {
-    // sendUpdate(slug, updates);
-  }
-
-  // sendUpdate(slug, updates);
+  // console.log(updates.length);
 
   return report;
 }
 
-export async function sendUpdate(slug: string, updates: RaidProgressEvent[]) {
-  const host = getHost();
+export async function getLatestEvents({ slug }: RaidInfo) {
+  let report = await generateProgressReportBySlug(slug);
 
-  const time = new Date();
+  if (!report) return null;
 
-  // ADD RAID NAME to TITLE
+  const last24Hours = new Date();
+  // console.log(last24Hours.getDate());
+  last24Hours.setDate(last24Hours.getDate() - 7);
+  // console.log(last24Hours, report.recentEvents[0].dateOccurred);
+  const updates = report
+    ? report.recentEvents.filter((e) => e.dateOccurred > last24Hours)
+    : [];
+
+  return updates;
+}
+
+export function buildDiscordMessage(
+  recentUpdates: Array<Array<RaidProgressEvent>>,
+  time: Date,
+  host: string
+): string {
   let message = `# Updates for ${time.toDateString()}\n\n`;
 
-  for (const u of updates) {
-    message += `${u.guildName} defeated ${
-      u.bossName
-    } at ${u.dateOccurred.toDateString()}\n`;
+  for (const re of recentUpdates) {
+    message += `## ${re[0].raidName}\n`;
+
+    for (const u of re) {
+      message += `${u.guildName} defeated ${
+        u.bossName
+      } at ${u.dateOccurred.toDateString()}\n`;
+    }
   }
 
-  message += `\nTo see the changes go to ${host}/raid/${slug}`;
+  message += `\nTo see the changes go to ${host}\n`;
 
-  console.log(message);
+  const message2 = `Hello World! This deployment has been updated at ${time.toDateString()} ${time.toLocaleTimeString()}. To see the changes go to ${host}`;
 
-  const message2 = `Hello World! This deployment has been updated at ${time.toDateString()} ${time.toLocaleTimeString()}. To see the changes go to ${host}/raid/${slug}`;
-
-  await sendDiscordMessage(message2);
+  return message;
 }
 
 export async function sendDiscordUpdate() {
@@ -451,34 +463,13 @@ export async function sendDiscordUpdate() {
 
   const time = new Date();
 
-  RAIDS.forEach(async ({ slug, name }) => {
-    let report = await generateProgressReportBySlug(slug);
+  const recentUpdatesPromises = RAIDS.map(getLatestEvents);
 
-    if (!report) return;
+  const recentUpdates = (await Promise.all(recentUpdatesPromises)).filter(
+    (ru) => ru && ru.length
+  ) as Array<Array<RaidProgressEvent>>;
 
-    const last24Hours = new Date();
-    console.log(last24Hours.getDate());
-    last24Hours.setDate(last24Hours.getDate() - 7);
-    console.log(last24Hours, report.recentEvents[0].dateOccurred);
-    const updates = report
-      ? report.recentEvents.filter((e) => e.dateOccurred > last24Hours)
-      : [];
+  const message = buildDiscordMessage(recentUpdates, time, host);
 
-    // ADD RAID NAME to TITLE
-    let message = `# Updates for ${name} ${time.toDateString()}\n\n`;
-
-    for (const u of updates) {
-      message += `${u.guildName} defeated ${
-        u.bossName
-      } at ${u.dateOccurred.toDateString()}\n`;
-    }
-
-    message += `\nTo see the changes go to ${host}/raid/${slug}`;
-
-    console.log(message);
-
-    const message2 = `Hello World! This deployment has been updated at ${time.toDateString()} ${time.toLocaleTimeString()}. To see the changes go to ${host}/raid/${slug}`;
-
-    await sendDiscordMessage(message);
-  });
+  return await sendDiscordMessage(message);
 }
