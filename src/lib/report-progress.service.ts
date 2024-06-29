@@ -9,7 +9,10 @@ import {
   WLogsDifficultiesMapType,
   WLOGS_RAID_DIFFICULTY,
   BossDataQueryVars,
-  RaidProgressEvent
+  RaidProgressEvent,
+  WLOGS_NORMAL_DIFFICULTY_ID,
+  WLOGS_HEROIC_DIFFICULTY_ID,
+  WLOGS_MYTHIC_DIFFICULTY_ID
 } from './types';
 
 // TODO: update this each season.
@@ -17,13 +20,14 @@ import {
   RAIDS,
   SEASON_END_DATE,
   SEASON_START_DATE,
-  GUILDS
+  GUILDS,
+  isCWG
 } from './data/index';
 
 import { fetchGuildProgressionByDifficulty } from './api/raiderio.api';
 import { postQuery } from './api/wlogs.api';
 import { sendDiscordMessage } from '@/app/_actions/discord';
-import { getHost } from './helper';
+import { getHost, getUnixTimestampInSeconds } from './helper';
 import { CWG } from './data/guilds';
 
 const difficultiesArray: RAID_DIFFICULTY[] = ['normal', 'heroic', 'mythic'];
@@ -43,9 +47,9 @@ const wlogsDifficultiesMap: WLogsDifficultiesMapType = {
 // CAREFUL ABOUT RAISING THIS NUMBER DUE TO RATE LIMITS
 const REPORT_LIMIT = 5;
 
-const FIGHT_QUERY = `query ($name: String, $server: String, $region: String, $startTime: Float, $endTime: Float) {
+const FIGHT_QUERY = `query ($name: String, $server: String, $region: String, $startTime: Float, $endTime: Float, $reportLimit: Int) {
 	reportData {
-		reports(guildName: $name, guildServerSlug: $server, guildServerRegion: $region, limit: ${REPORT_LIMIT}, startTime: $startTime, endTime: $endTime) {
+		reports(guildName: $name, guildServerSlug: $server, guildServerRegion: $region, limit: $reportLimit, startTime: $startTime, endTime: $endTime) {
 			data {
 				code,
 				startTime,
@@ -111,8 +115,8 @@ function processWlogReports(reports: PulledReportData[]): FlattenedFightData[] {
           reportStartTime: new Date(report.startTime),
           reportEndTime: new Date(report.endTime),
           ...f,
-          startTime: new Date(f.startTime),
-          endTime: new Date(f.endTime)
+          startTime: new Date(report.startTime + f.startTime),
+          endTime: new Date(report.startTime + f.endTime)
         };
       })
     )
@@ -124,33 +128,9 @@ export function sortByBestPulls(a: FlattenedFightData, b: FlattenedFightData) {
   return (
     b.difficulty - a.difficulty ||
     Number(b.kill) - Number(a.kill) ||
-    a.bossPercentage - b.bossPercentage
+    a.bossPercentage - b.bossPercentage ||
+    (a.reportStartTime > b.reportStartTime ? 1 : -1)
   );
-}
-
-async function getBestPullData(
-  queryVars: BossDataQueryVars
-): Promise<FlattenedFightData | null> {
-  const queryResults = await postQuery(
-    FIGHT_QUERY,
-    queryVars,
-    `FAILED TO FETCH ENCOUNTER ${queryVars.encounterID} FOR ${queryVars.name}`
-  );
-
-  // console.log(queryVars);
-
-  const data: PulledReportData[] = queryResults.data?.reportData?.reports?.data;
-
-  if (!data) return null;
-
-  const flattenedEncounters =
-    data && data.length ? processWlogReports(data) : [];
-
-  flattenedEncounters.sort(sortByBestPulls);
-
-  let bestPull = flattenedEncounters.length ? flattenedEncounters[0] : null;
-
-  return bestPull;
 }
 
 type FightMap = Map<number, FlattenedFightData | FlattenedFightData[]>;
@@ -315,6 +295,139 @@ export function updateRaidEncountersWithWlogs(
   return newEncounters;
 }
 
+/**
+ * buildCWGReport
+ *
+ * since CWG isn't a guild, it can't be fetched by raiderio, so
+ * we have to use wlogs and build the data ourselves
+ *
+ * @param raid
+ * @returns
+ */
+export async function buildCWGReport(raid: RaidInfo) {
+  const startTs = new Date(SEASON_START_DATE).getTime();
+  const endTs = SEASON_END_DATE
+    ? new Date(SEASON_END_DATE).getTime()
+    : undefined;
+
+  const queryVars: BossDataQueryVars = {
+    name: CWG.name,
+    server: CWG.realm.toLowerCase().replaceAll("'", ''),
+    region: CWG.region,
+    startTime: startTs,
+    endTime: endTs,
+    reportLimit: 20
+  };
+
+  const queryResults = await postQuery(
+    FIGHT_QUERY,
+    queryVars,
+    `FAILED TO FETCH FIGHTS FOR ${queryVars.name}`
+  );
+
+  const data: PulledReportData[] = queryResults.data?.reportData?.reports?.data;
+
+  if (!data) return null;
+
+  const encounterIds = raid.encounters.map(({ id }) => id);
+
+  const flattenedEncounters =
+    data && data.length
+      ? processWlogReports(data).filter(({ encounterID }) => {
+          return encounterID ? encounterIds.includes(encounterID) : false;
+        })
+      : [];
+
+  flattenedEncounters.sort(sortByBestPulls);
+
+  let normalBossesKilled = 0;
+  let heroicBossesKilled = 0;
+  let mythicBossesKilled = 0;
+
+  const raidEncounters = raid.encounters.map(({ id, rSlug, name }) => {
+    const allRaidBossPulls = flattenedEncounters.filter(
+      ({ encounterID }) => id === encounterID
+    );
+
+    // get first best pull for each difficulty
+
+    const nBoss = allRaidBossPulls.filter(
+      ({ difficulty }) => difficulty === WLOGS_NORMAL_DIFFICULTY_ID
+    )[0];
+
+    const hBoss = allRaidBossPulls.filter(
+      ({ difficulty }) => difficulty === WLOGS_HEROIC_DIFFICULTY_ID
+    )[0];
+
+    const mBoss = allRaidBossPulls.filter(
+      ({ difficulty }) => difficulty === WLOGS_MYTHIC_DIFFICULTY_ID
+    )[0];
+
+    // update stats
+
+    if (nBoss?.kill) {
+      normalBossesKilled++;
+    }
+
+    if (hBoss?.kill) {
+      heroicBossesKilled++;
+    }
+
+    if (mBoss?.kill) {
+      mythicBossesKilled++;
+    }
+
+    // Get best difficulty defeated
+    const difficulties = [mBoss, hBoss, nBoss];
+
+    const maxDifficultyBossKilled = difficulties.find((boss) => boss?.kill);
+
+    const maxDifficultyDefeated = maxDifficultyBossKilled
+      ? wlogsDifficultiesMap[
+          maxDifficultyBossKilled?.difficulty.toString() as WLOGS_RAID_DIFFICULTY
+        ]
+      : null;
+
+    const timeDefeated = maxDifficultyBossKilled
+      ? maxDifficultyBossKilled.endTime
+      : null;
+
+    return {
+      encounterID: id,
+      slug: rSlug,
+      name: name,
+      maxDifficultyDefeated,
+      defeatedAt: timeDefeated?.toISOString()
+    } as GuildRaidEncounter;
+  });
+
+  let overallProgressSummary = 'None';
+
+  if (mythicBossesKilled) {
+    overallProgressSummary = `${mythicBossesKilled}/${raidEncounters.length} M`;
+  } else if (heroicBossesKilled) {
+    overallProgressSummary = `${heroicBossesKilled}/${raidEncounters.length} H`;
+  } else if (normalBossesKilled) {
+    overallProgressSummary = `${normalBossesKilled}/${raidEncounters.length} N`;
+  }
+
+  const guildProgress: GuildRaidProgress = {
+    guild: CWG,
+    faction: CWG.faction,
+    profileUrl: `https://www.warcraftlogs.com/guild/id/697334/`,
+    raidEncounters: raidEncounters,
+    stats: {
+      summary: overallProgressSummary,
+      totalBosses: raidEncounters.length,
+      normalBossesKilled: normalBossesKilled,
+      heroicBossesKilled: heroicBossesKilled,
+      mythicBossesKilled: mythicBossesKilled
+    }
+  };
+
+  return guildProgress;
+}
+
 /* Generates a report for a raid */
 export async function generateProgressReport(
   raid: RaidInfo
@@ -326,22 +439,26 @@ export async function generateProgressReport(
   let raidProgression: GuildRaidProgress[] = [];
   const recentEvents: RaidProgressEvent[] = [];
 
-
   // Fetch raid progress per guild
   for (const g of GUILDS) {
-    const result = await createGuildProgressionReport(raid, g);
+    const result = isCWG(g.slug)
+      ? await buildCWGReport(raid)
+      : await createGuildProgressionReport(raid, g);
+
     if (!result) {
+      // console.log('NO result for', g.name);
       continue;
     }
 
-    const queryVars: Omit<BossDataQueryVars, 'encounterID'> = {
+    const queryVars: BossDataQueryVars = {
       name: g.name,
       server: g.realm.toLowerCase().replaceAll("'", ''),
       region: g.region,
       startTime: new Date(SEASON_START_DATE).getTime(),
       endTime: SEASON_END_DATE
         ? new Date(SEASON_START_DATE).getTime()
-        : undefined
+        : undefined,
+      reportLimit: isCWG(g.slug) ? 20 : REPORT_LIMIT
     };
 
     const bestPulls: FightMap | null = await getWlogReportFightsByGuild(
@@ -403,18 +520,6 @@ export async function generateProgressReportBySlug(
 
   const report = await generateProgressReport(raid);
 
-  // collect events
-  // todo: can we cache this date and filter what we send by what came after it?
-  const last24Hours = new Date();
-  // console.log(last24Hours.getDate());
-  last24Hours.setDate(last24Hours.getDate() - 7);
-  // console.log(last24Hours, report?.recentEvents[0].dateOccurred);
-  const updates = report
-    ? report.recentEvents.filter((e) => e.dateOccurred > last24Hours)
-    : [];
-
-  // console.log(updates.length);
-
   return report;
 }
 
@@ -423,12 +528,13 @@ export async function getLatestEvents({ slug }: RaidInfo) {
 
   if (!report) return null;
 
-  const last24Hours = new Date();
-  // console.log(last24Hours.getDate());
-  last24Hours.setDate(last24Hours.getDate() - 7);
-  // console.log(last24Hours, report.recentEvents[0].dateOccurred);
+  const daysWorthofUpdates = 1;
+
+  const sinceDate = new Date();
+  sinceDate.setDate(sinceDate.getDate() - daysWorthofUpdates);
+
   const updates = report
-    ? report.recentEvents.filter((e) => e.dateOccurred > last24Hours)
+    ? report.recentEvents.filter((e) => e.dateOccurred > sinceDate)
     : [];
 
   return updates;
@@ -439,21 +545,18 @@ export function buildDiscordMessage(
   time: Date,
   host: string
 ): string {
-  let message = `# Updates for ${time.toDateString()}\n\n`;
+  let message = `# Updates for <t:${getUnixTimestampInSeconds(time)}:D>\n\n`;
 
   for (const re of recentUpdates) {
     message += `## ${re[0].raidName}\n`;
-
     for (const u of re) {
-      message += `${u.guildName} defeated ${
-        u.bossName
-      } at ${u.dateOccurred.toDateString()}\n`;
+      const ts = getUnixTimestampInSeconds(u.dateOccurred);
+
+      message += `${u.guildName} defeated ${u.bossName} <t:${ts}:R> at <t:${ts}:t>\n`;
     }
   }
 
   message += `\nTo see the changes go to ${host}\n`;
-
-  const message2 = `Hello World! This deployment has been updated at ${time.toDateString()} ${time.toLocaleTimeString()}. To see the changes go to ${host}`;
 
   return message;
 }

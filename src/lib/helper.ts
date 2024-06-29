@@ -7,3 +7,7 @@ export function getHost(): string {
     ? `http://localhost:3000`
     : `https://cwg-progress.vercel.app`;
 }
+
+export function getUnixTimestampInSeconds(date: Date) {
+  return Math.floor(date.getTime() / 1000);
+}

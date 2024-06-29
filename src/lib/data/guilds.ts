@@ -112,8 +112,20 @@ export const THE_FISH_AND_BREAD_TRICK: GuildInfo = {
   faction: 'horde'
 };
 
+// FOR WARCRAFT LOGS ONLY
+// not an actual guild - this is a wlogs only team for the community logs
+// https://www.warcraftlogs.com/guild/id/697334/
+export const CWG: GuildInfo = {
+  name: 'CWG',
+  slug: 'CWG',
+  realm: "Eldre'Thalas",
+  region: 'us',
+  faction: 'alliance'
+};
+
 // raiding guilds
 export const GUILDS = [
+  CWG,
   BORN_AGAIN, // not raiding?
   BY_HIS_STRIPES,
   CHILDREN_OF_GOD, // not raiding?
@@ -142,12 +154,6 @@ export const WORK_IN_PROGRESS: GuildInfo = {
   faction: 'alliance'
 };
 
-// FOR WARCRAFT LOGS ONLY
-// not an actual guild - this is a wlogs only team for the community logs
-export const CWG: GuildInfo = {
-  name: 'CWG',
-  slug: 'CWG',
-  realm: 'Eldre’Thalas',
-  region: 'us',
-  faction: 'alliance'
-};
+export function isCWG(guildSlug: string) {
+  return CWG.slug === guildSlug;
+}

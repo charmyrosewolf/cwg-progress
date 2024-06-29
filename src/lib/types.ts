@@ -1,11 +1,11 @@
 /** graphql queryVars  types */
 export type BossDataQueryVars = {
-  encounterID: number;
   name: string;
   server: string;
   region: string;
-  startTime: number;
+  startTime: number; //  UNIX timestamp with millisecond precision
   endTime: number | undefined;
+  reportLimit: number;
 };
 
 /** RAID types */
@@ -20,6 +20,10 @@ export type RAID_DIFFICULTY = 'normal' | 'heroic' | 'mythic';
 export type DifficultiesMapType = {
   [Property in RAID_DIFFICULTY]: number;
 };
+
+export const WLOGS_NORMAL_DIFFICULTY_ID = 3;
+export const WLOGS_HEROIC_DIFFICULTY_ID = 4;
+export const WLOGS_MYTHIC_DIFFICULTY_ID = 5;
 
 export type WLOGS_RAID_DIFFICULTY = '3' | '4' | '5';
 

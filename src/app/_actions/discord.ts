@@ -1,5 +1,13 @@
 'use server';
 
+/**
+ * sendDiscordMessage sends a discord message through a webhook
+ *
+ * https://discord.com/developers/docs/resources/webhook#execute-webhook
+ *
+ * @param message
+ * @returns a json response
+ */
 export const sendDiscordMessage = async (message: string) => {
   try {
     // A fetch request to send data through the discord
