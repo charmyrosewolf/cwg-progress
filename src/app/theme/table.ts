@@ -52,8 +52,13 @@ const variantCustom = definePartsStyle((props) => {
       tr: {
         'th, td': {
           borderBottomWidth: '1px',
-          borderRightWidth: '1px'
+          borderRightWidth: '1px',
+
+          '&:last-of-type': {
+            borderRightWidth: 0
+          }
         },
+
         '&:nth-of-type(odd)': {
           'th, td': {
             borderColor: colorMode === 'light' ? `${c}.100` : `${c}.700`,

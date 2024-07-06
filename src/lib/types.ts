@@ -1,3 +1,7 @@
+/** util types */
+
+export type KeysOfUnion<T> = T extends T ? keyof T : never;
+
 /** graphql queryVars  types */
 export type BossDataQueryVars = {
   name: string;

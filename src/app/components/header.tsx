@@ -7,14 +7,12 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
-  VStack,
   Box,
   HStack
 } from '@chakra-ui/react';
 import { RAIDS } from '@/lib/data';
 import { Link } from '@chakra-ui/next-js';
-import { ToggleColorMode } from './toggle-color-code';
-import { isDevelopment } from '@/lib/helper';
+import ColorModeToggle from './color-mode-toggle';
 
 const name = 'CWG Progress';
 
@@ -29,8 +27,14 @@ export default function Header({ isHome }: HeaderProps) {
         <AlertIcon />
         <AlertTitle>This site is under construction!</AlertTitle>
         <AlertDescription>
-          Everything is subject to major change. Please report bugs on Github OR
-          contact CharmyRosewolf on discord with the details.
+          Everything is subject to major change. Please{' '}
+          <Link
+            href='https://github.com/charmyrosewolf/cwg-progress/issues'
+            target='_blank'
+          >
+            report bugs on Github
+          </Link>{' '}
+          OR contact CharmyRosewolf on discord with the details.
         </AlertDescription>
       </Alert>
 
@@ -38,15 +42,19 @@ export default function Header({ isHome }: HeaderProps) {
         <AlertIcon />
         <AlertTitle>To guildies</AlertTitle>
         <AlertDescription>
-          For accurate boss percentages, please ensure your guild uploads logs
-          to the guild warcraft logs ASAP after a raid night (not personal logs)
+          Please update: 1. your raider.io page and 2. Your GUILD warcraft logs
+          (not personal logs) with the latest raid logs for accurate boss
+          percentages.
         </AlertDescription>
       </Alert>
 
       <Alert status='info'>
         <AlertIcon />
-        <AlertTitle>Updates</AlertTitle>
-        <AlertDescription>Site updates once a day at 1AM EST</AlertDescription>
+        <AlertTitle>Update Schedule</AlertTitle>
+        <AlertDescription>
+          This site updates every 4 hours (may change). Discord webhook is sent
+          out once per day.
+        </AlertDescription>
       </Alert>
       <HStack w='95%' justifyContent={'space-between'}>
         <Box w='8rem'></Box>
@@ -59,19 +67,25 @@ export default function Header({ isHome }: HeaderProps) {
         ) : (
           <>
             <Heading justifySelf='center' as='h2' m='1rem 0'>
-              <Link href='/'>{name}</Link>
+              <Link variant='nav' href='/'>
+                {name}
+              </Link>
             </Heading>
           </>
         )}
         <Box w='8rem'>
-          <ToggleColorMode />
+          <ColorModeToggle />
         </Box>
       </HStack>
       {!isHome ? (
         <Stack direction={['column', 'row']} spacing={4}>
           {RAIDS
             ? RAIDS.map((r) => (
-                <Link key={`nav-${r.slug}`} href={`/raid/${r.slug}`}>
+                <Link
+                  variant='nav'
+                  key={`nav-${r.slug}`}
+                  href={`/raid/${r.slug}`}
+                >
                   {r.name}
                 </Link>
               ))

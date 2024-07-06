@@ -27,8 +27,9 @@ import {
 import { fetchGuildProgressionByDifficulty } from './api/raiderio.api';
 import { postQuery } from './api/wlogs.api';
 import { sendDiscordMessage } from '@/app/_actions/discord';
-import { getHost, getUnixTimestampInSeconds } from './helper';
+import { getHost, getUnixTimestampInSeconds, isDevelopment } from './helper';
 import { CWG } from './data/guilds';
+import { revalidatePath } from 'next/cache';
 
 const difficultiesArray: RAID_DIFFICULTY[] = ['normal', 'heroic', 'mythic'];
 
@@ -124,7 +125,7 @@ function processWlogReports(reports: PulledReportData[]): FlattenedFightData[] {
   // .sort((a, b) => (a.reportStartTime > b.reportStartTime ? 1 : -1));
 }
 
-export function sortByBestPulls(a: FlattenedFightData, b: FlattenedFightData) {
+function sortByBestPulls(a: FlattenedFightData, b: FlattenedFightData) {
   return (
     b.difficulty - a.difficulty ||
     Number(b.kill) - Number(a.kill) ||
@@ -257,7 +258,7 @@ async function createGuildProgressionReport(
   return guildProgress;
 }
 
-export function updateRaidEncountersWithWlogs(
+function updateRaidEncountersWithWlogs(
   bestPulls: FightMap,
   encounters: GuildRaidEncounter[]
 ): GuildRaidEncounter[] {
@@ -304,7 +305,7 @@ export function updateRaidEncountersWithWlogs(
  * @param raid
  * @returns
  */
-export async function buildCWGReport(raid: RaidInfo) {
+async function buildCWGReport(raid: RaidInfo) {
   const startTs = new Date(SEASON_START_DATE).getTime();
   const endTs = SEASON_END_DATE
     ? new Date(SEASON_END_DATE).getTime()
@@ -429,7 +430,7 @@ export async function buildCWGReport(raid: RaidInfo) {
 }
 
 /* Generates a report for a raid */
-export async function generateProgressReport(
+async function generateProgressReport(
   raid: RaidInfo
 ): Promise<ProgressReport | null> {
   // raid may not exist
@@ -523,6 +524,18 @@ export async function generateProgressReportBySlug(
   return report;
 }
 
+/* Get raid metadata */
+export async function getRaidMetadata(slug: string): Promise<RaidInfo | null> {
+  console.log('\ngenerating report for:', slug);
+
+  const raid = RAIDS.find((r) => r.slug === slug);
+
+  // raid may not exist
+  if (!raid) return null;
+
+  return raid;
+}
+
 export async function getLatestEvents({ slug }: RaidInfo) {
   let report = await generateProgressReportBySlug(slug);
 
@@ -571,6 +584,12 @@ export async function sendDiscordUpdate() {
   const recentUpdates = (await Promise.all(recentUpdatesPromises)).filter(
     (ru) => ru && ru.length
   ) as Array<Array<RaidProgressEvent>>;
+
+  if (!recentUpdates || !recentUpdates.length) {
+    return new Response('No updates were found.', {
+      status: 200
+    });
+  }
 
   const message = buildDiscordMessage(recentUpdates, time, host);
 

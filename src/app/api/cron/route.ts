@@ -1,4 +1,6 @@
+import { isDevelopment } from '@/lib/helper';
 import { sendDiscordUpdate } from '@/lib/report-progress.service';
+import { revalidatePath } from 'next/cache';
 import type { NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -9,7 +11,14 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // TODO: ensure cache is invalidated and get latest updates?
+
+  // if (!isDevelopment()) {
+  // invalidates current cache - on development we want to be careful with this
+  // revalidatePath('/'); // revalidateTag?
+  // }
+
   const response = await sendDiscordUpdate();
 
-  return Response.json(response);
+  return response;
 }

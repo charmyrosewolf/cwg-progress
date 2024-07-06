@@ -68,6 +68,16 @@ export async function fetchGuildProgressionByDifficulty(
   const data = await res.json();
 
   if (res.ok) {
+    // TODO: maybe this can be used to track last update?
+    // console.log(guild.slug);
+    // const date = res.headers.get('Date');
+    // const lastModified = res.headers.get('Last-Modified');
+
+    // if (date) {
+    //   console.log(new Date(date).toLocaleString());
+    //   console.log(new Date(lastModified).toLocaleString());
+    // }
+
     return data;
   } else {
     const errorMessage = `FAILED TO FETCH PROGRESSION FOR ${guild.name} ${raidSlug} ${difficulty}\nURL=${url}`;

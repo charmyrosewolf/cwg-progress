@@ -1,32 +1,44 @@
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { generateProgressReportBySlug } from '@/lib/report-progress.service';
+import {
+  generateProgressReportBySlug,
+  getRaidMetadata
+} from '@/lib/report-progress.service';
 import RaidProgress from './raid-progress';
 import { RAIDS } from '@/lib/data';
+import { RaidInfo } from '@/lib/types';
+import { getHost } from '@/lib/helper';
 
-// export async function generateMetadata({ params }: any): Promise<Metadata> {
-//   const { slug } = params;
+export async function generateMetadata({ params }: any): Promise<Metadata> {
+  const { slug } = params;
 
-//   const post = await getBlogPost(slug);
+  const raid = (await getRaidMetadata(slug)) as RaidInfo;
 
-//   const { title, description, createdOn, updatedOn, tags } = post.metadata;
+  const title = raid.name;
+  const description = `See ${raid.name} progress for guilds in the CWG community`;
 
-//   // viewport?
-//   return {
-//     title: title,
-//     description: description,
-//     openGraph: {
-//       title: title,
-//       description: description,
-//       type: 'article',
-//       publishedTime: `${createdOn}T00:00:00.000Z`,
-//       modifiedTime: `${updatedOn ? updatedOn : createdOn}T00:00:00.000Z`,
-//       authors: ['Charmy Rosewolf'],
-//       tags: tags
-//       // images: ['/some-specific-page-image.jpg', ...previousImages]
-//     }
-//   };
-// }
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: getHost(),
+      siteName: `CWG Progress`,
+      // tags: tags
+      // images: ['/some-specific-page-image.jpg', ...previousImages]
+      locale: 'en_US',
+      type: 'website'
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      creator: '@charmyrosewolf'
+      // images: ['you_url_here']
+    }
+  };
+}
 
 /* Generates all raid progress routes using slug */
 export async function generateStaticParams() {

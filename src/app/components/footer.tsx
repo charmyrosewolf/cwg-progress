@@ -8,15 +8,14 @@ export default function Footer() {
       <Stack>
         <Text>
           © 2024 CWG Progress Tracker. Made with &hearts; and&nbsp;
-          <Link
-            href='https://raider.io'
-            target='_blank'
-            color='blue.400'
-            _hover={{ color: 'blue.500' }}
-          >
-            raider.io
+          <Link href='https://raider.io' target='_blank'>
+            Raider.io
           </Link>
-          &nbsp;by Charmy Rosewolf
+          &nbsp;and&nbsp;
+          <Link href='https://www.warcraftlogs.com/' target='_blank'>
+            Warcraft Logs
+          </Link>
+          , &nbsp;by Charmy Rosewolf
         </Text>
       </Stack>
     </Flex>

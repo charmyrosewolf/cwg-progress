@@ -1,17 +1,37 @@
 import type { Metadata } from 'next';
-
+import { Box } from '@chakra-ui/react';
 import { Providers } from './providers';
 import { fonts } from './fonts';
 import './globals.css';
-import { Box } from '@chakra-ui/react';
 import Header from './components/header';
 import Footer from './components/footer';
 import { REVALIDATION_TIME } from '@/lib/types';
+import { getHost } from '@/lib/helper';
+
+const title = 'CWG Progress';
+const description =
+  'A progress tracking tool for the Christian WoW Guilds community';
 
 export const metadata: Metadata = {
-  title: 'CWG Progress',
-  description:
-    'A website to track progress of raid progress in the Christian WoW guilds community'
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    url: getHost(),
+    siteName: `CWG Progress`,
+    // tags: tags
+    // images: ['/some-specific-page-image.jpg', ...previousImages]
+    locale: 'en_US',
+    type: 'website'
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title,
+    description,
+    creator: '@charmyrosewolf'
+    // images: ['you_url_here']
+  }
 };
 
 type LayoutProps = Readonly<{
