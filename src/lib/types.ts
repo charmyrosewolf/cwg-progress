@@ -46,6 +46,7 @@ export type Region = 'us';
 
 /** GUILD types */
 export type GuildInfo = {
+  displayName?: string;
   name: string;
   slug: string;
   realm: string;
@@ -80,12 +81,26 @@ export type GuildRaidProgress = {
   stats: GuildRaidProgressStats;
 };
 
-export type RaidProgressEvent = {
+export type RaidProgressEventType = 'KILL' | 'BEST';
+
+type KillEvent = {
   guildName: string;
   raidName: string;
   bossName: string;
+  type: 'KILL';
   dateOccurred: Date;
 };
+
+type BestPullEvent = {
+  guildName: string;
+  raidName: string;
+  bossName: string;
+  lowestPercentage: number;
+  type: 'BEST';
+  dateOccurred: Date;
+};
+
+export type RaidProgressEvent = KillEvent | BestPullEvent;
 
 export type ProgressReport = {
   raid: RaidInfo;

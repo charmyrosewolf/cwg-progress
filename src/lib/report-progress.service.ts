@@ -438,7 +438,7 @@ async function generateProgressReport(
 
   // Fetch progress for raid
   let raidProgression: GuildRaidProgress[] = [];
-  const recentEvents: RaidProgressEvent[] = [];
+  const allEvents: RaidProgressEvent[] = [];
 
   // Fetch raid progress per guild
   for (const g of GUILDS) {
@@ -473,18 +473,30 @@ async function generateProgressReport(
       );
 
       // todo: only collect recent kills for now, tracking new bests will be a littler trickier
-      const recent: RaidProgressEvent[] = raidEncounters
-        .filter((re) => re.defeatedAt)
+      const events: RaidProgressEvent[] = raidEncounters
+        .filter((re) => re.defeatedAt || re.lowestBossPercentage)
         .map((re) => {
-          return {
-            guildName: g.name,
-            raidName: raid.name,
-            bossName: re.name,
-            dateOccurred: new Date(re.defeatedAt)
-          };
+          if (re.defeatedAt) {
+            return {
+              guildName: g.displayName || g.name,
+              raidName: raid.name,
+              bossName: re.name,
+              type: 'KILL',
+              dateOccurred: new Date(re.defeatedAt)
+            };
+          } else {
+            return {
+              guildName: g.displayName || g.name,
+              raidName: raid.name,
+              bossName: re.name,
+              type: 'BEST',
+              lowestPercentage: 0,
+              dateOccurred: new Date(re.defeatedAt)
+            };
+          }
         });
 
-      recentEvents.push(...recent);
+      allEvents.push(...events);
 
       result.raidEncounters = raidEncounters;
     }
@@ -492,11 +504,9 @@ async function generateProgressReport(
     raidProgression.push(result);
   }
 
-  recentEvents.sort((a, b) => (a.dateOccurred < b.dateOccurred ? 1 : -1));
+  allEvents.sort((a, b) => (a.dateOccurred < b.dateOccurred ? 1 : -1));
 
-  const top5Events = recentEvents.slice(0, 5);
-
-  // TODO: fetch wlogs for CWG
+  const top5Events = allEvents.slice(0, 5);
 
   const result: ProgressReport = {
     raid,
@@ -565,7 +575,13 @@ export function buildDiscordMessage(
     for (const u of re) {
       const ts = getUnixTimestampInSeconds(u.dateOccurred);
 
-      message += `${u.guildName} defeated ${u.bossName} <t:${ts}:R> at <t:${ts}:t>\n`;
+      switch (u.type) {
+        case 'KILL':
+          message += `${u.guildName} defeated ${u.bossName} <t:${ts}:R> at <t:${ts}:t>\n`;
+          break;
+        case 'BEST':
+          message += `${u.guildName} achieved a new best of ${u.lowestPercentage}% on ${u.bossName} <t:${ts}:R> at <t:${ts}:t>\n`;
+      }
     }
   }
 

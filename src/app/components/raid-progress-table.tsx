@@ -2,12 +2,12 @@ import {
   Table,
   Thead,
   Tbody,
-  Tfoot,
   Tr,
   Th,
   Td,
   TableCaption,
-  TableContainer
+  TableContainer,
+  Heading
 } from '@chakra-ui/react';
 import { GuildRaidProgress, ProgressReport, RaidInfo } from '@/lib/types';
 
@@ -38,7 +38,7 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
 
     return (
       <>
-        <Td>{pr.guild.name}</Td>
+        <Td>{pr.guild?.displayName || pr.guild.name}</Td>
         {pr.raidEncounters.map((e) => (
           <Td
             key={`${pr.guild.slug}-${e.slug}`}
@@ -60,10 +60,11 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
   };
 
   return (
-    <TableContainer key={report.raid.slug} mr='2rem'>
-      {/* <TableContainer width={{ base: 'full', md: '100%' }} mx='auto'> */}
-      <Table colorScheme='gray'>
-        <TableCaption placement={'top'}>{report.raid.name}</TableCaption>
+    <TableContainer key={report.raid.slug}>
+      <Table colorScheme='gray' size={['sm', null, null, 'md', null, 'lg']}>
+        <TableCaption placement={'top'}>
+          <Heading as='h2'>{report.raid.name}</Heading>
+        </TableCaption>
         {getHeader(report.raid)}
         <Tbody>
           {report.raidProgression.map((pr) => (
