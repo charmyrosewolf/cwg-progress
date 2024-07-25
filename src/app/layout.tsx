@@ -36,12 +36,11 @@ export const metadata: Metadata = {
 
 type LayoutProps = Readonly<{
   children: React.ReactNode;
-  home?: boolean;
 }>;
 
 export const revalidate = REVALIDATION_TIME;
 
-export default function RootLayout({ children, home }: LayoutProps) {
+export default function RootLayout({ children }: LayoutProps) {
   return (
     <html lang='en' className={fonts.inter.variable}>
       {/* <body style={{ maxHeight: '100vh', overflow: 'hidden' }}> */}
@@ -58,7 +57,7 @@ export default function RootLayout({ children, home }: LayoutProps) {
       >
         <Providers>
           {/* header */}
-          <Header isHome={!!home} />
+          <Header />
           {/* main */}
           <Box as='main' flexGrow='1' w='100vw' maxW='100vw' p='0 2rem'>
             {children}

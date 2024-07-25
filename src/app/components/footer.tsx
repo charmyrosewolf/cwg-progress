@@ -15,7 +15,7 @@ export default function Footer() {
           <Link href='https://www.warcraftlogs.com/' target='_blank'>
             Warcraft Logs
           </Link>
-          , &nbsp;by Charmy Rosewolf
+          &nbsp;by Charmy Rosewolf
         </Text>
       </Stack>
     </Flex>

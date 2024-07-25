@@ -8,13 +8,11 @@ import {
   Table,
   Thead,
   Tbody,
-  Tfoot,
   Tr,
   Th,
   Td,
   TableCaption,
-  TableContainer,
-  Box
+  TableContainer
 } from '@chakra-ui/react';
 import CustomLink from './custom-link';
 
@@ -36,7 +34,7 @@ export default function SummaryTable({
 
     return (
       <>
-        <Td>{gp.guild.name}</Td>
+        <Td>{gp.guild?.displayName || gp.guild.name}</Td>
         {statKeys.map((k: KeysOfUnion<GuildRaidProgressStats>) => (
           <Td key={`${gp.guild.slug}-${k}`} className={difficulty}>
             {gp.stats[k]}
@@ -54,14 +52,12 @@ export default function SummaryTable({
 
   return (
     <TableContainer maxWidth={maxWidth}>
-      {/* <TableContainer width={{ base: 'full', md: '100%' }} mx='auto'> */}
       <Table colorScheme='gray' size='sm'>
-        <TableCaption placement={'top'}>
-          Summary for {progressReport.raid.name}
-        </TableCaption>
-        <TableCaption placement={'bottom'} mt={0}>
-          See more{' '}
-          <CustomLink href={`/raid/${progressReport.raid.slug}`}>
+        <TableCaption placement={'top'} fontSize='1.5rem'>
+          <CustomLink
+            href={`/raid/${progressReport.raid.slug}`}
+            textDecoration='underline'
+          >
             {progressReport.raid.name}
           </CustomLink>
         </TableCaption>
@@ -78,9 +74,6 @@ export default function SummaryTable({
             <Tr key={`${pr.guild.slug}-summary`}>{getCellData(pr)}</Tr>
           ))}
         </Tbody>
-        {/* <Tfoot align={'center'}>
-          <Tr></Tr>
-        </Tfoot> */}
       </Table>
     </TableContainer>
   );

@@ -10,29 +10,33 @@ type DefaultDate = {
 type DistanceToNowDate = {
   dt: string | number;
   type: 'distance';
+  dateFormat?: string;
 };
 
-type DateProps = DefaultDate | DistanceToNowDate;
+type DateBoxProps = DefaultDate | DistanceToNowDate;
 
 function getFormat(dt: string | number, type: string, options: any) {
   switch (type) {
     case 'distance':
       return formatDistanceToNow(dt);
-      break;
     default:
       return format(dt, options.dateFormat);
   }
 }
 
-export default function Date({
+export default function DateBox({
   dt,
   type = 'default',
   ...restProps
-}: DateProps) {
+}: DateBoxProps) {
   let date = null;
+  let options = null;
 
   if (typeof dt === 'string') {
     date = parseISO(dt);
+    options = {
+      dateFormat: restProps.dateFormat
+    };
   } else if (typeof dt === 'number') {
     date = fromUnixTime(dt);
   }
@@ -41,9 +45,7 @@ export default function Date({
     return <p>Invalid Date</p>;
   }
 
-  console.log('DATE', date?.toISOString());
-
   return (
-    <time dateTime={date.toISOString()}>{getFormat(dt, type, restProps)}</time>
+    <time dateTime={date.toISOString()}>{getFormat(dt, type, options)}</time>
   );
 }

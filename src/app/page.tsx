@@ -1,17 +1,13 @@
-import {
-  Box,
-  Grid,
-  GridItem,
-  Heading,
-  SimpleGrid,
-  Stack
-} from '@chakra-ui/react';
+import { Box, Heading, SimpleGrid, Stack } from '@chakra-ui/react';
 import { RAIDS } from '@/lib/data';
 import { generateProgressReportBySlug } from '@/lib/report-progress.service';
 import { ProgressReport, RaidProgressEvent } from '@/lib/types';
 import SummaryTable from './components/summary-table';
 import { getNextUpdateUnixTime } from '@/lib/helper';
-import Date from './components/date';
+import TableKey from './components/table-key';
+import RecentUpdatesList from './components/recent-updates-list';
+import { compareAsc } from 'date-fns';
+import UpdateTime from './components/update-time';
 
 // TODO: update return value for this?
 export default async function Page() {
@@ -44,53 +40,57 @@ async function Home({ progressReports }: HomeProps) {
     )
     .sort((a, b) => (a.dateOccurred < b.dateOccurred ? 1 : -1))
     .splice(0, 5);
+
   return (
-    <Box mt='1em'>
-      <Box mt='1em' textAlign={'center'}>
-        <Heading as='h3'>Recent Updates</Heading>
-        {recentUpdates
-          ? recentUpdates.map((u, i) => (
-              <Box
-                key={`update-${i}`}
-              >{`${u.guildName} defeated ${u.bossName}`}</Box>
-            ))
-          : 'No recent updates'}
+    <Box m='1em 0' justifyContent={'space-around'}>
+      <Box mb='1em'>
+        {updatedTime ? <UpdateTime lastUpdate={updatedTime} /> : null}
       </Box>
+      <Stack
+        direction={['column', null, null, null, 'row', null]}
+        mt='1em'
+        align={['center', null, null, null, 'unset', null]}
+        justifyContent={'space-evenly'}
+      >
+        <Box maxWidth={'100%'}>
+          <Heading as='h2' textAlign='center' m='1rem 0'>
+            Raid Progression Summary
+          </Heading>
 
-      <Box>
-        <Heading as='h3' textAlign='center' mt='1rem'>
-          Summary
-        </Heading>
-
-        <SimpleGrid h='auto' columns={[1, 1, 1, 1, 2, 2]} spacing={10}>
-          {progressReports && progressReports.length
-            ? progressReports.map((r) => (
-                <SummaryTable
-                  key={`${r.raid.slug}-summary-table`}
-                  progressReport={r}
-                ></SummaryTable>
-              ))
-            : 'NO DATA AVAILABLE'}
-        </SimpleGrid>
-      </Box>
-
-      {updatedTime && nextUpdateUnixTIme ? (
-        <>
-          <Box textAlign={'left'} pt='1rem'>
-            Last update on&nbsp;
-            <Date
-              dt={updatedTime.toISOString()}
-              type='default'
-              dateFormat={'PPPP p'}
-            ></Date>
+          <Box display={'flex'} justifyContent={'center'}>
+            <TableKey
+              maxWidth='22ch'
+              labels={[
+                'Progressing on Normal',
+                'Progressing on Heroic',
+                'Progressing on Mythic'
+              ]}
+            />
           </Box>
 
-          <Box textAlign={'left'}>
-            Next update in&nbsp;
-            <Date dt={nextUpdateUnixTIme} type='distance'></Date>
-          </Box>
-        </>
-      ) : null}
+          <SimpleGrid h='auto' mt='1em' columns={1} spacing={10}>
+            {progressReports && progressReports.length
+              ? progressReports.map((r) => (
+                  <SummaryTable
+                    key={`${r.raid.slug}-summary-table`}
+                    progressReport={r}
+                  ></SummaryTable>
+                ))
+              : 'NO DATA AVAILABLE'}
+          </SimpleGrid>
+        </Box>
+
+        <Box
+          mt={['1em', null, '0em']}
+          maxW={['20em', null, '30em', null, '40em', null]}
+          justifySelf={'flex-start'}
+        >
+          <Heading as='h2' textAlign='center' m='1rem 0'>
+            Recent Updates
+          </Heading>
+          <RecentUpdatesList recentUpdates={recentUpdates}></RecentUpdatesList>
+        </Box>
+      </Stack>
     </Box>
   );
 }
