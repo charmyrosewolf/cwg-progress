@@ -116,8 +116,8 @@ export const THE_FISH_AND_BREAD_TRICK: GuildInfo = {
 // not an actual guild - this is a wlogs only team for the community logs
 // https://www.warcraftlogs.com/guild/id/697334/
 export const CWG: GuildInfo = {
-  displayName: 'CWG Community',
   name: 'CWG',
+  displayName: 'CWG Community',
   slug: 'CWG',
   realm: "Eldre'Thalas",
   region: 'us',

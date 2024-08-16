@@ -1,5 +1,4 @@
 // TABLE VARIANT
-import { isDevelopment } from '@/lib/helper';
 import { tableAnatomy } from '@chakra-ui/anatomy';
 import { createMultiStyleConfigHelpers, defineStyle } from '@chakra-ui/react';
 
@@ -19,10 +18,6 @@ const sizes = {
 const variantCustom = definePartsStyle((props) => {
   const { colorScheme: c, colorMode } = props;
 
-  if (isDevelopment()) {
-    console.log('colorMode', c, colorMode);
-  }
-
   return {
     tr: {
       'td:first-of-type': {
@@ -41,6 +36,7 @@ const variantCustom = definePartsStyle((props) => {
       whiteSpace: 'wrap'
     },
     td: {
+      textAlign: 'center',
       '&[data-is-numeric=true]': {
         textAlign: 'end'
       }

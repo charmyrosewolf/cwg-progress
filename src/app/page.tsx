@@ -1,39 +1,34 @@
 import { Box, Heading, SimpleGrid, Stack } from '@chakra-ui/react';
 import { RAIDS } from '@/lib/data';
-import { generateProgressReportBySlug } from '@/lib/report-progress.service';
-import { ProgressReport, RaidProgressEvent } from '@/lib/types';
+import { generateSummaryReportBySlug } from '@/lib/report-progress.service';
+import { RaidProgressEvent, SummaryReport } from '@/lib/types';
 import SummaryTable from './components/summary-table';
-import { getNextUpdateUnixTime } from '@/lib/helper';
 import TableKey from './components/table-key';
 import RecentUpdatesList from './components/recent-updates-list';
-import { compareAsc } from 'date-fns';
 import UpdateTime from './components/update-time';
 
-// TODO: update return value for this?
 export default async function Page() {
-  const progressReportsPromise = RAIDS.map(async (r) => {
-    return await generateProgressReportBySlug(r.slug);
+  const summaryReportsPromise = RAIDS.map(async (r) => {
+    return await generateSummaryReportBySlug(r.slug);
   });
 
-  const reports = await Promise.all(progressReportsPromise);
-  const filteredReports = reports.filter((r) => r !== null) as ProgressReport[];
+  const reports = await Promise.all(summaryReportsPromise);
+  const filteredReports = reports.filter((r) => r !== null) as SummaryReport[];
 
-  return <Home progressReports={filteredReports}></Home>;
+  return <Home summaryReports={filteredReports}></Home>;
 }
 
-type HomeProps = { progressReports: ProgressReport[] };
+type HomeProps = {
+  summaryReports: SummaryReport[];
+};
 
-async function Home({ progressReports }: HomeProps) {
+async function Home({ summaryReports }: HomeProps) {
   const updatedTime =
-    progressReports && progressReports.length
-      ? progressReports[0].createdOn
+    summaryReports && summaryReports.length
+      ? summaryReports[0].createdOn
       : null;
 
-  const nextUpdateUnixTIme = updatedTime
-    ? getNextUpdateUnixTime(updatedTime)
-    : null;
-
-  const recentUpdates: RaidProgressEvent[] = progressReports
+  const recentUpdates: RaidProgressEvent[] = summaryReports
     .reduce(
       (acc, pr, i) => [...acc, ...pr.recentEvents],
       [] as RaidProgressEvent[]
@@ -69,11 +64,11 @@ async function Home({ progressReports }: HomeProps) {
           </Box>
 
           <SimpleGrid h='auto' mt='1em' columns={1} spacing={10}>
-            {progressReports && progressReports.length
-              ? progressReports.map((r) => (
+            {summaryReports && summaryReports.length
+              ? summaryReports.map((r) => (
                   <SummaryTable
                     key={`${r.raid.slug}-summary-table`}
-                    progressReport={r}
+                    summaryReport={r}
                   ></SummaryTable>
                 ))
               : 'NO DATA AVAILABLE'}
