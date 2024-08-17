@@ -10,6 +10,7 @@ import {
   Heading
 } from '@chakra-ui/react';
 import { GuildRaidProgress, ProgressReport, RaidInfo } from '@/lib/types';
+import CustomLink from './custom-link';
 
 type RaidProgressTableProps = {
   report: ProgressReport;
@@ -37,14 +38,26 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
     const { summary } = pr.overallSummary;
     const difficulty = summary[summary.length - 1]; // H, N or M
     const {
-      guild: { displayName, name }
+      guild: { displayName, name, profileUrl }
     } = pr;
 
     const guildName = displayName || name;
 
     return (
       <>
-        <Td textAlign='left'>{guildName}</Td>
+        <Td textAlign='left'>
+          {profileUrl ? (
+            <CustomLink
+              href={profileUrl}
+              textDecoration='underline'
+              target='_blank'
+            >
+              {guildName}
+            </CustomLink>
+          ) : (
+            <>{guildName}</>
+          )}
+        </Td>
         {pr.raidEncounters.map((e) => (
           <Td
             key={`${pr.guild.slug}-${e.slug}`}

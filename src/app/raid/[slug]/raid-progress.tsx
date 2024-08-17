@@ -1,5 +1,5 @@
 import { ProgressReport } from '@/lib/types';
-import { Box, Stack } from '@chakra-ui/react';
+import { Box, Heading, Stack } from '@chakra-ui/react';
 import RaidProgressTable from '@/app/components/raid-progress-table';
 import TableKey from '@/app/components/table-key';
 import UpdateTime from '@/app/components/update-time';
@@ -20,14 +20,17 @@ export default function RaidProgress({ progressReport }: RaidProgressProps) {
       >
         {RAIDS
           ? RAIDS.map((r) => (
-              <CustomLink
-                m='0 1em'
-                fontSize={['md', 'lg', null, 'xl']}
+              <Heading
                 key={`nav-${r.slug}`}
-                href={`/raid/${r.slug}`}
+                justifySelf='center'
+                as='h2'
+                m='1rem 1rem'
+                fontSize={['md', 'lg', null, 'xl']}
               >
-                {r.name}
-              </CustomLink>
+                <CustomLink textDecoration='none' href={`/raid/${r.slug}`}>
+                  {r.name}
+                </CustomLink>
+              </Heading>
             ))
           : null}
       </Stack>

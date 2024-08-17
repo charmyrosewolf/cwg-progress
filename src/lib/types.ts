@@ -48,6 +48,7 @@ export type Region = 'us';
 /** GUILD types */
 export type GuildInfo = {
   displayName?: string;
+  profileUrl?: string;
   name: string;
   slug: string;
   realm: string;

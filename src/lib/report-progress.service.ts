@@ -276,6 +276,8 @@ async function createGuildStatisticsReport(
       summary.charAt(summary.length - 1) === overallSummaryLevelChar
   ) as Statistic;
 
+  guild.profileUrl = normalProgress.profile_url;
+
   return {
     guild,
     overallSummary,
@@ -349,6 +351,7 @@ async function createGuildProgressionReport(
     } as GuildRaidEncounter;
   });
 
+  guild.profileUrl = normalProgress.profile_url;
 
   const levelChar = raidStats.summary[
     raidStats.summary.length - 1

@@ -25,14 +25,26 @@ export default function SummaryTable({
       gp.overallSummary.summary[gp.overallSummary.summary.length - 1]; // H, N or M
     const {
       summaries,
-      guild: { displayName, name, slug }
+      guild: { displayName, name, slug, profileUrl }
     } = gp;
 
     const guildName = displayName || name;
 
     return (
       <>
-        <Td textAlign='left'>{guildName}</Td>
+        <Td textAlign='left'>
+          {profileUrl ? (
+            <CustomLink
+              href={profileUrl}
+              textDecoration='underline'
+              target='_blank'
+            >
+              {guildName}
+            </CustomLink>
+          ) : (
+            <>{guildName}</>
+          )}
+        </Td>
         {summaries.map(({ level, summary }) => {
           return (
             <Td key={`${slug}-${level}`} className={difficulty}>

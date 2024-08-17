@@ -2,6 +2,7 @@ import { defineStyle, defineStyleConfig } from '@chakra-ui/react';
 
 const defaultStyle = defineStyle({
   color: 'blue.400',
+  textDecoration: 'underline',
 
   _hover: {
     color: 'blue.500'
@@ -16,28 +17,25 @@ const defaultStyle = defineStyle({
   }
 });
 
-const nav = defineStyle({
+const header = defineStyle({
   color: 'black',
+  textDecoration: 'none',
 
   _hover: {
     textDecoration: 'none'
-    // color: 'blue.500'
   },
 
   _dark: {
     color: 'white',
-    // color: 'blue.100',
 
-    _hover: {
-      // color: 'blue.500'
-    }
+    _hover: {}
   }
 });
 
 export const linkTheme = defineStyleConfig({
-  variants: { nav },
+  variants: { header },
   baseStyle: defaultStyle
 });
 
-// Now we can use the new `nav` variant
-// <Link variant="basic">...</Link>
+// Now we can use the new `header` variant
+// <Link variant="header">...</Link>
