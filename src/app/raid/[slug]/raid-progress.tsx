@@ -18,7 +18,7 @@ export default function RaidProgress({ progressReport }: RaidProgressProps) {
         textAlign='center'
         spacing={4}
       >
-        {RAIDS
+        {RAIDS && RAIDS.length > 1
           ? RAIDS.map((r) => (
               <Heading
                 key={`nav-${r.slug}`}

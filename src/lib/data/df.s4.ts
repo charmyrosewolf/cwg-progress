@@ -6,8 +6,8 @@ import {
 import { ABERRUS_ENCOUNTERS, ABERRUS_THE_SHADOWED_CRUCIBLE } from './df.s2';
 import { AMIRDRASSIL_ENCOUNTERS, AMIRDRASSIL_THE_DREAMS_HOPE } from './df.s3';
 
-export const SEASON_START_DATE = '2024-04-23T12:00:00.000Z';
-export const SEASON_END_DATE = 0; // TODO: update later
+export const SEASON_START_DATE = '2024-04-30T15:00:00Z';
+export const SEASON_END_DATE = '2024-08-26T22:00:00Z';
 
 // Encounters
 const AWAKENED_VAULT_OF_THE_INCARNATES_ENCOUNTERS: Encounter[] =

@@ -251,9 +251,10 @@ async function createGuildStatisticsReport(
   const raidStats = normalProgress.raid_progression[raid.slug];
 
   const hasAnyKills =
-    raidStats.normal_bosses_killed ||
-    raidStats.heroic_bosses_killed ||
-    raidStats.mythic_bosses_killed;
+    raidStats &&
+    (raidStats.normal_bosses_killed ||
+      raidStats.heroic_bosses_killed ||
+      raidStats.mythic_bosses_killed);
 
   // don't continue if guild doesn't have any kills
   if (!hasAnyKills) {
@@ -312,9 +313,10 @@ async function createGuildProgressionReport(
   const raidStats = normalProgress.raid_progression[raid.slug];
 
   const hasAnyKills =
-    raidStats.normal_bosses_killed ||
-    raidStats.heroic_bosses_killed ||
-    raidStats.mythic_bosses_killed;
+    raidStats &&
+    (raidStats.normal_bosses_killed ||
+      raidStats.heroic_bosses_killed ||
+      raidStats.mythic_bosses_killed);
 
   // don't continue if guild doesn't have any kills
   if (!hasAnyKills) {
