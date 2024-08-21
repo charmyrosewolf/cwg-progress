@@ -662,6 +662,7 @@ function createEventsByGuild(
   encounters: GuildRaidEncounter[]
 ): RaidProgressEvent[] {
   const guildName = guild.displayName || guild.name;
+
   return encounters
     .filter((e) => e.defeatedAt || e.lowestBossPercentage)
     .map((e) => {
