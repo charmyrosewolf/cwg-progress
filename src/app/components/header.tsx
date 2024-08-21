@@ -47,7 +47,7 @@ export default function Header({}: HeaderProps) {
       >
         <Box w='10rem'></Box>
         <Heading justifySelf='center' as='h1' m='1rem 0' fontSize={'2.6rem'}>
-          <Link variant='nav' href='/'>
+          <Link variant='header' href='/'>
             {name}
           </Link>
         </Heading>

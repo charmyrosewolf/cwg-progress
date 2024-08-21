@@ -10,6 +10,7 @@ import {
   Heading
 } from '@chakra-ui/react';
 import { GuildRaidProgress, ProgressReport, RaidInfo } from '@/lib/types';
+import CustomLink from './custom-link';
 
 type RaidProgressTableProps = {
   report: ProgressReport;
@@ -34,11 +35,29 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
 
   // todo: should I use RaidInfo.encounters here?
   const getCellData = (pr: GuildRaidProgress) => {
-    const difficulty = pr.stats.summary[pr.stats.summary.length - 1]; // H, N or M
+    const { summary } = pr.overallSummary;
+    const difficulty = summary[summary.length - 1]; // H, N or M
+    const {
+      guild: { displayName, name, profileUrl }
+    } = pr;
+
+    const guildName = displayName || name;
 
     return (
       <>
-        <Td>{pr.guild?.displayName || pr.guild.name}</Td>
+        <Td textAlign='left'>
+          {profileUrl ? (
+            <CustomLink
+              href={profileUrl}
+              textDecoration='underline'
+              target='_blank'
+            >
+              {guildName}
+            </CustomLink>
+          ) : (
+            <>{guildName}</>
+          )}
+        </Td>
         {pr.raidEncounters.map((e) => (
           <Td
             key={`${pr.guild.slug}-${e.slug}`}
@@ -53,7 +72,7 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
           </Td>
         ))}
         <Td key={`${pr.guild.slug}-normal`} className={difficulty}>
-          {pr.stats.summary}
+          {summary}
         </Td>
       </>
     );
@@ -71,14 +90,6 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
             <Tr key={`${pr.guild.slug}`}>{getCellData(pr)}</Tr>
           ))}
         </Tbody>
-        {/* <Tfoot>
-            <Tr>
-              <Th>Guild</Th>
-              {RAID.encounters.map((e) => (
-                <Th key={'footer' + e.id}>{e.name}</Th>
-              ))}
-            </Tr>
-          </Tfoot> */}
       </Table>
     </TableContainer>
   );

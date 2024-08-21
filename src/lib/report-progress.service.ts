@@ -12,7 +12,11 @@ import {
   RaidProgressEvent,
   WLOGS_NORMAL_DIFFICULTY_ID,
   WLOGS_HEROIC_DIFFICULTY_ID,
-  WLOGS_MYTHIC_DIFFICULTY_ID
+  WLOGS_MYTHIC_DIFFICULTY_ID,
+  GuildRaidProgressStatistics,
+  SummaryReport,
+  Statistic,
+  RAID_DIFFICULTY_SHORT_CODES
 } from './types';
 
 // TODO: update this each season.
@@ -27,9 +31,8 @@ import {
 import { fetchGuildProgressionByDifficulty } from './api/raiderio.api';
 import { postQuery } from './api/wlogs.api';
 import { sendDiscordMessage } from '@/app/_actions/discord';
-import { getHost, getUnixTimestampInSeconds, isDevelopment } from './helper';
+import { getHost, getUnixTimestampInSeconds } from './helper';
 import { CWG } from './data/guilds';
-import { revalidatePath } from 'next/cache';
 
 const difficultiesArray: RAID_DIFFICULTY[] = ['normal', 'heroic', 'mythic'];
 
@@ -37,6 +40,15 @@ const difficultiesMap: DifficultiesMapType = {
   normal: 0,
   heroic: 1,
   mythic: 2
+};
+
+const shortCodeDifficultiesMap: Record<
+  RAID_DIFFICULTY_SHORT_CODES,
+  RAID_DIFFICULTY
+> = {
+  N: 'normal',
+  H: 'heroic',
+  M: 'mythic'
 };
 
 const wlogsDifficultiesMap: WLogsDifficultiesMapType = {
@@ -101,6 +113,50 @@ type FlattenedFightData = {
   kill: boolean;
   bossPercentage: number;
   fightPercentage: number;
+};
+
+const createStatistic = (
+  level: RAID_DIFFICULTY,
+  totalBosses: number,
+  bossesKilled: number
+): Statistic => {
+  const symbol = level.charAt(0).toUpperCase();
+
+  const summary = bossesKilled
+    ? `${bossesKilled}/${totalBosses} ${symbol}`
+    : '-';
+
+  return {
+    level: level,
+    bossesKilled: bossesKilled,
+    summary: summary
+  };
+};
+
+const createStatistics = (
+  totalBosses: number,
+  normalKills: number,
+  heroicKills: number,
+  mythicKills: number
+): Array<Statistic> => {
+  const normalSummary: Statistic = createStatistic(
+    'normal',
+    totalBosses,
+    normalKills
+  );
+  const heroicSummary: Statistic = createStatistic(
+    'heroic',
+    totalBosses,
+    heroicKills
+  );
+
+  const mythicSummary: Statistic = createStatistic(
+    'mythic',
+    totalBosses,
+    mythicKills
+  );
+
+  return [normalSummary, heroicSummary, mythicSummary];
 };
 
 // TODO: Might need to change return type as data grows
@@ -176,6 +232,61 @@ async function getWlogReportFightsByGuild(
   return fightMap;
 }
 
+/**
+ * Creates raid progression statistics pulled from raider.io
+ * @param raid
+ * @param guild
+ * @returns
+ */
+async function createGuildStatisticsReport(
+  raid: RaidInfo,
+  guild: GuildInfo
+): Promise<GuildRaidProgressStatistics | null> {
+  const normalProgress = await fetchGuildProgressionByDifficulty(
+    raid.slug,
+    guild,
+    'normal'
+  );
+
+  const raidStats = normalProgress.raid_progression[raid.slug];
+
+  const hasAnyKills =
+    raidStats &&
+    (raidStats.normal_bosses_killed ||
+      raidStats.heroic_bosses_killed ||
+      raidStats.mythic_bosses_killed);
+
+  // don't continue if guild doesn't have any kills
+  if (!hasAnyKills) {
+    return null;
+  }
+
+  const summaries = createStatistics(
+    raidStats.total_bosses,
+    raidStats.normal_bosses_killed,
+    raidStats.heroic_bosses_killed,
+    raidStats.mythic_bosses_killed
+  );
+
+  const overallSummaryLevelChar = raidStats.summary.charAt(
+    raidStats.summary.length - 1
+  );
+
+  const overallSummary: Statistic = summaries.find(
+    ({ summary }) =>
+      summary.charAt(summary.length - 1) === overallSummaryLevelChar
+  ) as Statistic;
+
+  guild.profileUrl = normalProgress.profile_url;
+
+  return {
+    guild,
+    overallSummary,
+    totalBosses: raidStats.total_bosses,
+    summaries: summaries
+  };
+}
+
 async function createGuildProgressionReport(
   raid: RaidInfo,
   guild: GuildInfo
@@ -202,9 +313,10 @@ async function createGuildProgressionReport(
   const raidStats = normalProgress.raid_progression[raid.slug];
 
   const hasAnyKills =
-    raidStats.normal_bosses_killed ||
-    raidStats.heroic_bosses_killed ||
-    raidStats.mythic_bosses_killed;
+    raidStats &&
+    (raidStats.normal_bosses_killed ||
+      raidStats.heroic_bosses_killed ||
+      raidStats.mythic_bosses_killed);
 
   // don't continue if guild doesn't have any kills
   if (!hasAnyKills) {
@@ -241,18 +353,25 @@ async function createGuildProgressionReport(
     } as GuildRaidEncounter;
   });
 
+  guild.profileUrl = normalProgress.profile_url;
+
+  const levelChar = raidStats.summary[
+    raidStats.summary.length - 1
+  ] as RAID_DIFFICULTY_SHORT_CODES;
+
+  const level = shortCodeDifficultiesMap[levelChar];
+  const bossesKilled = parseInt(raidStats.summary[0]);
+
+  const overallSummary = createStatistic(
+    level,
+    raidStats.total_bosses,
+    bossesKilled
+  );
+
   const guildProgress: GuildRaidProgress = {
     guild: guild,
-    faction: normalProgress.faction,
-    profileUrl: normalProgress.profile_url,
     raidEncounters: raidEncounters,
-    stats: {
-      summary: raidStats.summary,
-      totalBosses: raidStats.total_bosses,
-      normalBossesKilled: raidStats.normal_bosses_killed,
-      heroicBossesKilled: raidStats.heroic_bosses_killed,
-      mythicBossesKilled: raidStats.mythic_bosses_killed
-    }
+    overallSummary
   };
 
   return guildProgress;
@@ -283,6 +402,7 @@ function updateRaidEncountersWithWlogs(
         lowestBossPercentage = bestPull.bossPercentage;
       } else {
         // wlogs has an inconsistency -- guild is likely not uploading reports
+        // TODO: default to raider.io data
       }
     }
 
@@ -294,6 +414,120 @@ function updateRaidEncountersWithWlogs(
   });
 
   return newEncounters;
+}
+
+/**
+ * buildCWGStatistics
+ *
+ * since CWG isn't a guild, it can't be fetched by raiderio, so
+ * we have to use wlogs and build the data ourselves
+ *
+ * @param raid
+ * @returns
+ */
+async function buildCWGStatistics(
+  raid: RaidInfo
+): Promise<GuildRaidProgressStatistics | null> {
+  const startTs = new Date(SEASON_START_DATE).getTime();
+  const endTs = SEASON_END_DATE
+    ? new Date(SEASON_END_DATE).getTime()
+    : undefined;
+
+  const queryVars: BossDataQueryVars = {
+    name: CWG.name,
+    server: CWG.realm.toLowerCase().replaceAll("'", ''),
+    region: CWG.region,
+    startTime: startTs,
+    endTime: endTs,
+    reportLimit: 20
+  };
+
+  const queryResults = await postQuery(
+    FIGHT_QUERY,
+    queryVars,
+    `FAILED TO FETCH FIGHTS FOR ${queryVars.name}`
+  );
+
+  const data: PulledReportData[] = queryResults.data?.reportData?.reports?.data;
+
+  if (!data) return null;
+
+  const encounterIds = raid.encounters.map(({ id }) => id);
+
+  const flattenedEncounters =
+    data && data.length
+      ? processWlogReports(data).filter(({ encounterID }) => {
+          return encounterID ? encounterIds.includes(encounterID) : false;
+        })
+      : [];
+
+  flattenedEncounters.sort(sortByBestPulls);
+
+  let normalBossesKilled = 0;
+  let heroicBossesKilled = 0;
+  let mythicBossesKilled = 0;
+
+  raid.encounters.forEach(({ id, rSlug, name }) => {
+    const allRaidBossPulls = flattenedEncounters.filter(
+      ({ encounterID }) => id === encounterID
+    );
+
+    // get first best pull for each difficulty
+
+    const nBoss = allRaidBossPulls.filter(
+      ({ difficulty }) => difficulty === WLOGS_NORMAL_DIFFICULTY_ID
+    )[0];
+
+    const hBoss = allRaidBossPulls.filter(
+      ({ difficulty }) => difficulty === WLOGS_HEROIC_DIFFICULTY_ID
+    )[0];
+
+    const mBoss = allRaidBossPulls.filter(
+      ({ difficulty }) => difficulty === WLOGS_MYTHIC_DIFFICULTY_ID
+    )[0];
+
+    // update stats
+
+    if (nBoss?.kill) {
+      normalBossesKilled++;
+    }
+
+    if (hBoss?.kill) {
+      heroicBossesKilled++;
+    }
+
+    if (mBoss?.kill) {
+      mythicBossesKilled++;
+    }
+  });
+
+  const hasAnyKills =
+    normalBossesKilled || heroicBossesKilled || mythicBossesKilled;
+
+  // don't continue if CWG doesn't have any kills
+  if (!hasAnyKills) {
+    return null;
+  }
+
+  const totalBosses = raid.encounters.length;
+
+  const summaries = createStatistics(
+    totalBosses,
+    normalBossesKilled,
+    heroicBossesKilled,
+    mythicBossesKilled
+  );
+
+  let overallSummary: Statistic = summaries.findLast(
+    (s) => s.bossesKilled
+  ) as Statistic;
+
+  return {
+    guild: CWG,
+    overallSummary,
+    totalBosses,
+    summaries
+  };
 }
 
 /**
@@ -402,31 +636,130 @@ async function buildCWGReport(raid: RaidInfo) {
     } as GuildRaidEncounter;
   });
 
-  let overallProgressSummary = 'None';
+  let overallSummary: Statistic;
+  const totalBosses = raidEncounters.length;
 
   if (mythicBossesKilled) {
-    overallProgressSummary = `${mythicBossesKilled}/${raidEncounters.length} M`;
+    overallSummary = createStatistic('mythic', totalBosses, mythicBossesKilled);
   } else if (heroicBossesKilled) {
-    overallProgressSummary = `${heroicBossesKilled}/${raidEncounters.length} H`;
-  } else if (normalBossesKilled) {
-    overallProgressSummary = `${normalBossesKilled}/${raidEncounters.length} N`;
+    overallSummary = createStatistic('heroic', totalBosses, heroicBossesKilled);
+  } else {
+    overallSummary = createStatistic('normal', totalBosses, normalBossesKilled);
   }
 
   const guildProgress: GuildRaidProgress = {
     guild: CWG,
-    faction: CWG.faction,
-    profileUrl: `https://www.warcraftlogs.com/guild/id/697334/`,
     raidEncounters: raidEncounters,
-    stats: {
-      summary: overallProgressSummary,
-      totalBosses: raidEncounters.length,
-      normalBossesKilled: normalBossesKilled,
-      heroicBossesKilled: heroicBossesKilled,
-      mythicBossesKilled: mythicBossesKilled
-    }
+    overallSummary
   };
 
   return guildProgress;
+}
+
+function createEventsByGuild(
+  guild: GuildInfo,
+  raid: RaidInfo,
+  encounters: GuildRaidEncounter[]
+): RaidProgressEvent[] {
+  const guildName = guild.displayName || guild.name;
+
+  return encounters
+    .filter((e) => e.defeatedAt || e.lowestBossPercentage)
+    .map((e) => {
+      if (e.defeatedAt) {
+        return {
+          guildName,
+          raidName: raid.name,
+          bossName: e.name,
+          type: 'KILL',
+          dateOccurred: new Date(e.defeatedAt)
+        };
+      } else {
+        return {
+          guildName,
+          raidName: raid.name,
+          bossName: e.name,
+          type: 'BEST',
+          lowestPercentage: 0,
+          dateOccurred: new Date(e.defeatedAt)
+        };
+      }
+    });
+}
+
+async function generateSummaryReport(
+  raid: RaidInfo
+): Promise<SummaryReport | null> {
+  let summaries: GuildRaidProgressStatistics[] = [];
+  const allEvents: RaidProgressEvent[] = [];
+
+  for (const g of GUILDS) {
+    const statistics = isCWG(g.slug)
+      ? await buildCWGStatistics(raid)
+      : await createGuildStatisticsReport(raid, g);
+
+    if (!statistics) {
+      // console.log('NO result for', g.name);
+      continue;
+    }
+
+    summaries.push(statistics);
+
+    // There is a better way to do this, but reusing it until next iteration of
+    // refactoring
+    const progression = isCWG(g.slug)
+      ? await buildCWGReport(raid)
+      : await createGuildProgressionReport(raid, g);
+
+    if (!progression) {
+      continue;
+    }
+
+    const queryVars: BossDataQueryVars = {
+      name: g.name,
+      server: g.realm.toLowerCase().replaceAll("'", ''),
+      region: g.region,
+      startTime: new Date(SEASON_START_DATE).getTime(),
+      endTime: SEASON_END_DATE
+        ? new Date(SEASON_START_DATE).getTime()
+        : undefined,
+      reportLimit: isCWG(g.slug) ? 20 : REPORT_LIMIT
+    };
+
+    const bestPulls: FightMap | null = await getWlogReportFightsByGuild(
+      queryVars
+    );
+
+    if (bestPulls) {
+      const raidEncounters = updateRaidEncountersWithWlogs(
+        bestPulls,
+        progression.raidEncounters
+      );
+
+      const events: RaidProgressEvent[] = createEventsByGuild(
+        g,
+        raid,
+        raidEncounters
+      );
+
+      allEvents.push(...events);
+
+      progression.raidEncounters = raidEncounters;
+    }
+  }
+
+  allEvents.sort((a, b) => (a.dateOccurred < b.dateOccurred ? 1 : -1));
+
+  const top5Events = allEvents.slice(0, 5);
+
+  const report: SummaryReport = {
+    raid,
+    summaries,
+    recentEvents: top5Events,
+    createdOn: new Date()
+  };
+
+  return report;
 }
 
 /* Generates a report for a raid */
@@ -472,29 +805,13 @@ async function generateProgressReport(
         result.raidEncounters
       );
 
-      // todo: only collect recent kills for now, tracking new bests will be a littler trickier
-      const events: RaidProgressEvent[] = raidEncounters
-        .filter((re) => re.defeatedAt || re.lowestBossPercentage)
-        .map((re) => {
-          if (re.defeatedAt) {
-            return {
-              guildName: g.displayName || g.name,
-              raidName: raid.name,
-              bossName: re.name,
-              type: 'KILL',
-              dateOccurred: new Date(re.defeatedAt)
-            };
-          } else {
-            return {
-              guildName: g.displayName || g.name,
-              raidName: raid.name,
-              bossName: re.name,
-              type: 'BEST',
-              lowestPercentage: 0,
-              dateOccurred: new Date(re.defeatedAt)
-            };
-          }
-        });
+      // TODO: This isn't actually needed by the /raids pages
+      // but is needed for getLatestEvents. Try refactoring it out.
+      const events: RaidProgressEvent[] = createEventsByGuild(
+        g,
+        raid,
+        raidEncounters
+      );
 
       allEvents.push(...events);
 
@@ -508,14 +825,30 @@ async function generateProgressReport(
 
   const top5Events = allEvents.slice(0, 5);
 
-  const result: ProgressReport = {
+  const report: ProgressReport = {
     raid,
     raidProgression: raidProgression,
     createdOn: new Date(),
     recentEvents: top5Events
   };
 
-  return result;
+  return report;
+}
+
+/* Generates statistics summary for current season by raid name slug */
+export async function generateSummaryReportBySlug(
+  slug: string
+): Promise<SummaryReport | null> {
+  console.log('\ngenerating statistics for:', slug);
+
+  const raid = RAIDS.find((r) => r.slug === slug);
+
+  // raid may not exist
+  if (!raid) return null;
+
+  const report = await generateSummaryReport(raid);
+
+  return report;
 }
 
 /* Generates a reports for current season by raid name slug */

@@ -118,6 +118,8 @@ export const THE_FISH_AND_BREAD_TRICK: GuildInfo = {
 export const CWG: GuildInfo = {
   displayName: 'CWG Community',
   name: 'CWG',
+  // todo: can this be pulled from wlogs?
+  profileUrl: 'https://www.warcraftlogs.com/guild/id/697334/',
   slug: 'CWG',
   realm: "Eldre'Thalas",
   region: 'us',

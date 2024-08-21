@@ -1,9 +1,4 @@
-import {
-  GuildRaidProgress,
-  GuildRaidProgressStats,
-  KeysOfUnion,
-  ProgressReport
-} from '@/lib/types';
+import { GuildRaidProgressStatistics, SummaryReport } from '@/lib/types';
 import {
   Table,
   Thead,
@@ -17,37 +12,48 @@ import {
 import CustomLink from './custom-link';
 
 type SummaryTableProps = {
-  progressReport: ProgressReport;
+  summaryReport: SummaryReport;
   maxWidth?: string;
 };
 
 export default function SummaryTable({
-  progressReport,
+  summaryReport,
   maxWidth = '100%'
 }: SummaryTableProps) {
-  const statKeys = Object.keys(
-    progressReport.raidProgression[0].stats
-  ) as KeysOfUnion<GuildRaidProgressStats>[];
+  const getCellData = (gp: GuildRaidProgressStatistics) => {
+    const difficulty =
+      gp.overallSummary.summary[gp.overallSummary.summary.length - 1]; // H, N or M
+    const {
+      summaries,
+      guild: { displayName, name, slug, profileUrl }
+    } = gp;
 
-  const getCellData = (gp: GuildRaidProgress) => {
-    const difficulty = gp.stats.summary[gp.stats.summary.length - 1]; // H, N or M
+    const guildName = displayName || name;
 
     return (
       <>
-        <Td>{gp.guild?.displayName || gp.guild.name}</Td>
-        {statKeys.map((k: KeysOfUnion<GuildRaidProgressStats>) => (
-          <Td key={`${gp.guild.slug}-${k}`} className={difficulty}>
-            {gp.stats[k]}
-          </Td>
-        ))}
+        <Td textAlign='left'>
+          {profileUrl ? (
+            <CustomLink
+              href={profileUrl}
+              textDecoration='underline'
+              target='_blank'
+            >
+              {guildName}
+            </CustomLink>
+          ) : (
+            <>{guildName}</>
+          )}
+        </Td>
+        {summaries.map(({ level, summary }) => {
+          return (
+            <Td key={`${slug}-${level}`} className={difficulty}>
+              {summary}
+            </Td>
+          );
+        })}
       </>
     );
-  };
-
-  const getFirstWordInCamel = (camel: string): string => {
-    const camelCase = camel.replace(/([a-z])([A-Z])/g, '$1 $2');
-
-    return camelCase.split(' ')[0];
   };
 
   return (
@@ -55,23 +61,23 @@ export default function SummaryTable({
       <Table colorScheme='gray' size='sm'>
         <TableCaption placement={'top'} fontSize='1.5rem'>
           <CustomLink
-            href={`/raid/${progressReport.raid.slug}`}
+            href={`/raid/${summaryReport.raid.slug}`}
             textDecoration='underline'
           >
-            {progressReport.raid.name}
+            {summaryReport.raid.name}
           </CustomLink>
         </TableCaption>
         <Thead>
           <Tr>
             <Th>Guild</Th>
-            {statKeys.map((k: string) => (
-              <Th key={'header-' + k}>{getFirstWordInCamel(k)}</Th>
-            ))}
+            <Th>Normal</Th>
+            <Th>Heroic</Th>
+            <Th>Mythic</Th>
           </Tr>
         </Thead>
         <Tbody>
-          {progressReport.raidProgression.map((pr) => (
-            <Tr key={`${pr.guild.slug}-summary`}>{getCellData(pr)}</Tr>
+          {summaryReport.summaries.map((sr) => (
+            <Tr key={`${sr.guild.slug}-summary`}>{getCellData(sr)}</Tr>
           ))}
         </Tbody>
       </Table>

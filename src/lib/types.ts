@@ -20,6 +20,7 @@ export type RaidInfo = {
 };
 
 export type RAID_DIFFICULTY = 'normal' | 'heroic' | 'mythic';
+export type RAID_DIFFICULTY_SHORT_CODES = 'N' | 'H' | 'M';
 
 export type DifficultiesMapType = {
   [Property in RAID_DIFFICULTY]: number;
@@ -47,6 +48,7 @@ export type Region = 'us';
 /** GUILD types */
 export type GuildInfo = {
   displayName?: string;
+  profileUrl?: string;
   name: string;
   slug: string;
   realm: string;
@@ -65,20 +67,23 @@ export type GuildRaidEncounter = {
   lowestBossPercentage: number | null;
 };
 
-export type GuildRaidProgressStats = {
+export type Statistic = {
+  level: RAID_DIFFICULTY;
+  bossesKilled: number;
   summary: string;
+};
+
+export type GuildRaidProgressStatistics = {
+  guild: GuildInfo;
+  overallSummary: Statistic;
   totalBosses: number;
-  normalBossesKilled: number;
-  heroicBossesKilled: number;
-  mythicBossesKilled: number;
+  summaries: Array<Statistic>;
 };
 
 export type GuildRaidProgress = {
   guild: GuildInfo;
-  faction: string;
-  profileUrl: string;
   raidEncounters: GuildRaidEncounter[];
-  stats: GuildRaidProgressStats;
+  overallSummary: Statistic;
 };
 
 export type RaidProgressEventType = 'KILL' | 'BEST';
@@ -101,6 +106,13 @@ type BestPullEvent = {
 };
 
 export type RaidProgressEvent = KillEvent | BestPullEvent;
+
+export type SummaryReport = {
+  raid: RaidInfo;
+  summaries: GuildRaidProgressStatistics[];
+  createdOn: Date; // date report was generated
+  recentEvents: RaidProgressEvent[];
+};
 
 export type ProgressReport = {
   raid: RaidInfo;

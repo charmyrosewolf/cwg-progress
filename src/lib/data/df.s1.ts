@@ -1,8 +1,8 @@
 /** Vault of the Incarnates	10.0.0  */
 import { Encounter, RaidInfo } from '../types';
 
-export const SEASON_START_DATE = '2022-12-13T12:00:00.000Z';
-export const SEASON_END_DATE = '2023-05-10T12:00:00.000Z';
+export const SEASON_START_DATE = '2022-12-13T15:00:00Z';
+export const SEASON_END_DATE = '2023-05-09T15:00:00Z';
 
 const INSTANCE_ID = 2522;
 
