@@ -1,6 +1,7 @@
 import { GuildInfo } from '../types';
 
 const BORN_AGAIN: GuildInfo = {
+  rId: 1436410,
   name: 'Born Again',
   slug: 'born-again',
   realm: 'skywall',
@@ -9,6 +10,7 @@ const BORN_AGAIN: GuildInfo = {
 };
 
 const BY_HIS_STRIPES: GuildInfo = {
+  rId: 25183,
   name: 'By His Stripes',
   slug: 'by-his-stripes',
   realm: 'Thunderhorn',
@@ -17,6 +19,7 @@ const BY_HIS_STRIPES: GuildInfo = {
 };
 
 const CHILDREN_OF_GOD: GuildInfo = {
+  rId: 977154,
   name: 'Children Of God',
   slug: 'children-of-god',
   realm: 'skywall',
@@ -25,6 +28,7 @@ const CHILDREN_OF_GOD: GuildInfo = {
 };
 
 const ETERNITY_MATTERS: GuildInfo = {
+  rId: 54617,
   name: 'Eternity Matters',
   slug: 'eternity-matters',
   realm: "Eldre'Thalas",
@@ -33,6 +37,7 @@ const ETERNITY_MATTERS: GuildInfo = {
 };
 
 export const FAMS: GuildInfo = {
+  rId: 1928668,
   name: 'Faith As A Mustard Seed',
   slug: 'faith-as-a-mustard-seed',
   realm: 'Illidan',
@@ -41,6 +46,7 @@ export const FAMS: GuildInfo = {
 };
 
 const IS_SAVED_BY_GRACE: GuildInfo = {
+  rId: 2005811,
   name: 'Is Saved By Grace',
   slug: 'is-saved-by-grace',
   realm: 'Medivh',
@@ -49,6 +55,7 @@ const IS_SAVED_BY_GRACE: GuildInfo = {
 };
 
 const IXOYE: GuildInfo = {
+  rId: 58701,
   name: 'IXOYE',
   slug: 'ixoye',
   realm: 'Medivh',
@@ -57,6 +64,7 @@ const IXOYE: GuildInfo = {
 };
 
 const KINGDOM_HEIRS: GuildInfo = {
+  rId: 1875874,
   name: 'Kingdom Heirs',
   slug: 'kingdom-heirs',
   realm: 'Stormrage',
@@ -65,6 +73,7 @@ const KINGDOM_HEIRS: GuildInfo = {
 };
 
 const NARROW_PATH: GuildInfo = {
+  rId: 25085,
   name: 'Narrow Path',
   slug: 'narrow-path',
   realm: 'Thunderhorn',
@@ -73,6 +82,7 @@ const NARROW_PATH: GuildInfo = {
 };
 
 const ORDER_OF_THE_RIGHTEOUS: GuildInfo = {
+  rId: 1994719,
   name: 'Order of the Righteous',
   slug: 'order-of-the-righteous',
   realm: 'Area 52',
@@ -81,6 +91,7 @@ const ORDER_OF_THE_RIGHTEOUS: GuildInfo = {
 };
 
 const RENEWED_HOPE: GuildInfo = {
+  rId: 14324,
   name: 'Renewed Hope',
   slug: 'renewed-hope',
   realm: 'Alexstrasza',
@@ -89,6 +100,7 @@ const RENEWED_HOPE: GuildInfo = {
 };
 
 export const SALVATIONS_DAWN: GuildInfo = {
+  rId: 714202,
   name: 'Salvations Dawn',
   slug: 'salvations-dawn',
   realm: 'Arathor',
@@ -97,6 +109,7 @@ export const SALVATIONS_DAWN: GuildInfo = {
 };
 
 export const SALT_AND_LIGHT: GuildInfo = {
+  rId: 2024322,
   name: 'Salt and Light',
   slug: 'salt-and-light',
   realm: 'Arathor',
@@ -105,6 +118,7 @@ export const SALT_AND_LIGHT: GuildInfo = {
 };
 
 export const THE_FISH_AND_BREAD_TRICK: GuildInfo = {
+  rId: 413801,
   name: 'The Fish and Bread Trick',
   slug: 'the-fish-and-bread-trick',
   realm: 'Dalaran',
@@ -116,6 +130,7 @@ export const THE_FISH_AND_BREAD_TRICK: GuildInfo = {
 // not an actual guild - this is a wlogs only team for the community logs
 // https://www.warcraftlogs.com/guild/id/697334/
 export const CWG: GuildInfo = {
+  rId: 0, // 0 since it's not on raider.io
   displayName: 'CWG Community',
   name: 'CWG',
   // todo: can this be pulled from wlogs?
@@ -149,13 +164,13 @@ export const GUILDS = [
 export const GUILDS2 = [NARROW_PATH];
 
 // CLASSIC GUILD - save for future reference
-export const WORK_IN_PROGRESS: GuildInfo = {
-  name: 'Work in Progress',
-  slug: 'Work-in-progress',
-  realm: 'Pagle',
-  region: 'us',
-  faction: 'alliance'
-};
+// export const WORK_IN_PROGRESS: GuildInfo = {
+//   name: 'Work in Progress',
+//   slug: 'Work-in-progress',
+//   realm: 'Pagle',
+//   region: 'us',
+//   faction: 'alliance'
+// };
 
 export function isCWG(guildSlug: string) {
   return CWG.slug === guildSlug;

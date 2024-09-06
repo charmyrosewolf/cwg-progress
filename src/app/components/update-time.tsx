@@ -1,7 +1,9 @@
 import { Box } from '@chakra-ui/react';
-import DateBox from './datebox';
-import { getNextUpdateUnixTime } from '@/lib/helper';
 import { compareAsc } from 'date-fns';
+
+import { getNextUpdateUnixTime } from '@/lib/utils/helper';
+
+import DateBox from './datebox';
 
 type UpdateTimeProps = {
   textAlign?: any;

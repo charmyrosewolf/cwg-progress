@@ -34,6 +34,7 @@ export async function postQuery(
 
   const data = await res.json();
 
+  // Note that this won't fail in the case that the query is too complex
   if (res.ok) {
     return data;
   } else {

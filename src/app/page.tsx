@@ -1,7 +1,9 @@
 import { Box, Heading, SimpleGrid, Stack } from '@chakra-ui/react';
+
 import { RAIDS } from '@/lib/data';
-import { generateSummaryReportBySlug } from '@/lib/report-progress.service';
+import { generateSummaryReportBySlug } from '@/lib/reports/report';
 import { RaidProgressEvent, SummaryReport } from '@/lib/types';
+
 import SummaryTable from './components/summary-table';
 import TableKey from './components/table-key';
 import RecentUpdatesList from './components/recent-updates-list';

@@ -7,9 +7,12 @@ import {
   Th,
   Td,
   TableCaption,
-  TableContainer
+  TableContainer,
+  Box,
+  Text
 } from '@chakra-ui/react';
 import CustomLink from './custom-link';
+import { InfoOutlineIcon } from './chakra-components';
 
 type SummaryTableProps = {
   summaryReport: SummaryReport;
@@ -24,6 +27,7 @@ export default function SummaryTable({
     const difficulty =
       gp.overallSummary.summary[gp.overallSummary.summary.length - 1]; // H, N or M
     const {
+      currentProgression,
       summaries,
       guild: { displayName, name, slug, profileUrl }
     } = gp;
@@ -52,6 +56,7 @@ export default function SummaryTable({
             </Td>
           );
         })}
+        <Td className={difficulty}>{currentProgression}</Td>
       </>
     );
   };
@@ -67,19 +72,42 @@ export default function SummaryTable({
             {summaryReport.raid.name}
           </CustomLink>
         </TableCaption>
-        <Thead>
-          <Tr>
-            <Th>Guild</Th>
-            <Th>Normal</Th>
-            <Th>Heroic</Th>
-            <Th>Mythic</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {summaryReport.summaries.map((sr) => (
-            <Tr key={`${sr.guild.slug}-summary`}>{getCellData(sr)}</Tr>
-          ))}
-        </Tbody>
+        {summaryReport.summaries.length ? (
+          <>
+            <Thead>
+              <Tr>
+                <Th>Guild</Th>
+                <Th textAlign='center'>Normal</Th>
+                <Th textAlign='center'>Heroic</Th>
+                <Th textAlign='center'>Mythic</Th>
+                <Th textAlign='center'>Current Boss</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {summaryReport.summaries.map((sr) => (
+                <Tr key={`${sr.guild.slug}-summary`}>{getCellData(sr)}</Tr>
+              ))}
+            </Tbody>
+          </>
+        ) : (
+          <>
+            <Thead>
+              <Tr>
+                <Th></Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              <Td>
+                <Box>
+                  <InfoOutlineIcon boxSize={12} />
+                </Box>
+                <Text m='1.25em' fontSize={'md'}>
+                  This season has no data yet.
+                </Text>
+              </Td>
+            </Tbody>
+          </>
+        )}
       </Table>
     </TableContainer>
   );

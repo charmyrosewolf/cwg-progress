@@ -61,7 +61,7 @@ const BROODKEEPER_DIURNA: Encounter = {
 const RASZAGETH_THE_STORM_EATER: Encounter = {
   id: RASZAGETH_THE_STORM_EATER_ID,
   name: 'Raszageth the Storm-Eater',
-  rSlug: 'raszageth-the-storm-eater'
+  rSlug: 'raszageth-the-stormeater'
 };
 
 // Encounters

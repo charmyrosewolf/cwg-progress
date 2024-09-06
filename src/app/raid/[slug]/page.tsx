@@ -2,17 +2,22 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import {
   generateProgressReportBySlug,
+  getAllRaidMetadata,
   getRaidMetadata
-} from '@/lib/report-progress.service';
-import RaidProgress from './raid-progress';
-import { RAIDS } from '@/lib/data';
+} from '@/lib/reports/report';
 import { RaidInfo } from '@/lib/types';
-import { getHost } from '@/lib/helper';
+import { getHost } from '@/lib/utils/helper';
+
+import RaidProgress from './raid-progress';
 
 export async function generateMetadata({ params }: any): Promise<Metadata> {
   const { slug } = params;
 
   const raid = (await getRaidMetadata(slug)) as RaidInfo;
+
+  if (!raid) {
+    return notFound();
+  }
 
   const title = raid.name;
   const description = `See ${raid.name} progress for guilds in the CWG community`;
@@ -42,9 +47,13 @@ export async function generateMetadata({ params }: any): Promise<Metadata> {
 
 /* Generates all raid progress routes using slug */
 export async function generateStaticParams() {
-  return RAIDS.map((post) => ({
-    slug: post.slug
-  }));
+  const raids = await getAllRaidMetadata();
+
+  return raids && raids.length
+    ? raids.map((post) => ({
+        slug: post.slug
+      }))
+    : [];
 }
 
 async function getRaidProgress(slug: string) {
