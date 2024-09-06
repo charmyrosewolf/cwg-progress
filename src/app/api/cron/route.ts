@@ -1,7 +1,6 @@
-import { isDevelopment } from '@/lib/helper';
-import { sendDiscordUpdate } from '@/lib/report-progress.service';
-import { revalidatePath } from 'next/cache';
 import type { NextRequest } from 'next/server';
+
+import { sendDiscordUpdate } from '@/lib/reports/discord.service';
 
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');

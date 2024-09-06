@@ -27,13 +27,12 @@ async function Help() {
             To ensure your guild&apos;s progress on this site is accurate:
           </Text>
           <OrderedList fontSize='xl' mt='.25em'>
-            <ListItem>
-              Update your raider.io page frequently for accurate kill progress,
-              and
+            <ListItem mb='.25em'>
+              Update your raider.io page frequently for accurate progress, and
             </ListItem>
-            <ListItem>
+            <ListItem mb='.25em'>
               Update your guild&apos;s warcraft logs (not personal logs) with
-              the latest raid logs for accurate best pull percentages.
+              the latest raid logs for accurate links.
             </ListItem>
           </OrderedList>
         </Box>
@@ -51,13 +50,14 @@ async function Help() {
             Issues
           </Heading>
           <Text fontSize='xl'>
-            Please contact CharmyRosewolf on discord to report inconsistencies
-            on this site with raider.io or Warcraft Logs. You may also{' '}
+            Please contact CharmyRosewolf on discord with requests or to report
+            inconsistencies. Include any helpful raider.io or Warcraft Logs
+            information if applicable. You may also{' '}
             <CustomLink
               href='https://github.com/charmyrosewolf/cwg-progress/issues'
               target='_blank'
             >
-              report bugs on Github
+              view or report bugs on Github
             </CustomLink>
             .
           </Text>

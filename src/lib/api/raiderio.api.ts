@@ -1,9 +1,15 @@
 /** Raider.io APIv1 */
 /** https://raider.io/api# */
 
+import { GUILDS } from '../data';
 import { RAID_DIFFICULTY, GuildInfo } from '../types';
+import {
+  RaiderIOGuildRaidRanking,
+  RaiderIORaidDifficultyRankings
+} from './raiderio.types';
 
 const GUILD_URL = 'https://raider.io/api/v1/guilds';
+const RAIDING_URL = 'https://raider.io/api/v1/raiding';
 
 type RawEncounterData = {
   slug: string;
@@ -84,4 +90,66 @@ export async function fetchGuildProgressionByDifficulty(
     console.error(errorMessage, data);
     return Promise.reject(data);
   }
+}
+
+async function fetchRaidRankingsByDifficulty(
+  raidSlug: string,
+  guildIds: number[],
+  difficulty: RAID_DIFFICULTY,
+  region = 'us'
+): Promise<RaiderIOGuildRaidRanking[]> {
+  if (guildIds.length && guildIds.length > 10) {
+    console.error('Cannot fetch more than ten rankings at a time');
+  }
+
+  const headers = getHeaders();
+
+  const guildIdStrings = guildIds.toString();
+
+  const queryParams = `region=${region}&raid=${raidSlug}&difficulty=${difficulty}&guilds=${guildIdStrings}&limit=200&page=0`;
+  const url = `${RAIDING_URL}/raid-rankings?${encodeURI(queryParams)}`;
+
+  let options: any = {
+    method: 'GET',
+    headers: headers,
+    next: { revalidate: 3600 }
+  };
+
+  const res = await fetch(url, options);
+
+  const data = (await res.json()) as RaiderIORaidDifficultyRankings;
+
+  if (res.ok) {
+    return data.raidRankings;
+  } else {
+    const errorMessage = `FAILED TO FETCH RAID RANKINGS FOR ${guildIdStrings} ${raidSlug} ${difficulty}\nURL=${url}`;
+    console.error(errorMessage, data);
+    return Promise.reject(data);
+  }
+}
+
+// TODO: return object with all difficulties
+export async function fetchAllRaidRankingsByDifficulty(
+  raidSlug: string,
+  difficulty: RAID_DIFFICULTY
+): Promise<RaiderIOGuildRaidRanking[]> {
+  const allIds = GUILDS.map((g) => g.rId).filter((id) => id);
+
+  let guildIdsToProcess = allIds.splice(0, 10);
+
+  const allRankings: RaiderIOGuildRaidRanking[] = [];
+
+  while (guildIdsToProcess.length) {
+    const rankings = await fetchRaidRankingsByDifficulty(
+      raidSlug,
+      guildIdsToProcess,
+      difficulty
+    );
+
+    allRankings.push(...rankings);
+
+    guildIdsToProcess = allIds.splice(0, 10);
+  }
+
+  return allRankings;
 }

@@ -33,7 +33,7 @@ export default function Header({}: HeaderProps) {
             href='https://github.com/charmyrosewolf/cwg-progress/issues'
             target='_blank'
           >
-            report bugs on Github
+            view or report bugs on Github
           </CustomLink>
         </AlertDescription>
       </Alert>

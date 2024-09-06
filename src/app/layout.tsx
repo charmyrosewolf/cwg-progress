@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import { Box } from '@chakra-ui/react';
+
+import { REVALIDATION_TIME } from '@/lib/types';
+import { getHost } from '@/lib/utils/helper';
+
 import { Providers } from './providers';
 import { fonts } from './fonts';
 import './globals.css';
 import Header from './components/header';
 import Footer from './components/footer';
-import { REVALIDATION_TIME } from '@/lib/types';
-import { getHost } from '@/lib/helper';
 
 const title = 'CWG Progress';
 const description =
