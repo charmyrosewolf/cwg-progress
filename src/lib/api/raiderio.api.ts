@@ -65,8 +65,7 @@ export async function fetchGuildProgressionByDifficulty(
 
   let options: any = {
     method: 'GET',
-    headers: headers,
-    next: { revalidate: 3600 }
+    headers: headers
   };
 
   const res = await fetch(url, options);
@@ -111,8 +110,7 @@ async function fetchRaidRankingsByDifficulty(
 
   let options: any = {
     method: 'GET',
-    headers: headers,
-    next: { revalidate: 3600 }
+    headers: headers
   };
 
   const res = await fetch(url, options);
