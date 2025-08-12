@@ -1,8 +1,8 @@
-/** Amirdrassil, The Dream's Hope **/
+/** Liberation of Undermine **/
 import { Encounter, RaidInfo } from '../types';
 
 export const SEASON_START_DATE = '2025-03-04T15:00:00Z';
-export const SEASON_END_DATE = 0; // unknown, update later
+export const SEASON_END_DATE = '2025-08-04T15:00:00Z';
 
 // TODO: move to raidinfo
 const INSTANCE_ID = ''; // 2769

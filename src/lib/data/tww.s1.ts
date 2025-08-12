@@ -1,4 +1,4 @@
-/** Amirdrassil, The Dream's Hope **/
+/** Nerub-ar Palace **/
 import { Encounter, RaidInfo } from '../types';
 
 export const SEASON_START_DATE = '2024-09-10T15:00:00Z';
