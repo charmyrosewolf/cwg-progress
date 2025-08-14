@@ -2,10 +2,6 @@
 import {
   Flex,
   Heading,
-  Alert,
-  AlertIcon,
-  AlertTitle,
-  AlertDescription,
   Box,
   Button,
   Stack
@@ -21,23 +17,6 @@ interface HeaderProps {}
 export default function Header({}: HeaderProps) {
   return (
     <Flex as='header' direction='column' align='center' w='100vw'>
-      <Alert status='error'>
-        <AlertIcon />
-        <AlertTitle textTransform='uppercase'>
-          Site under construction
-        </AlertTitle>
-        <AlertDescription>
-          Please contact CharmyRosewolf on discord with any inconsistencies. You
-          may also{' '}
-          <CustomLink
-            href='https://github.com/charmyrosewolf/cwg-progress/issues'
-            target='_blank'
-          >
-            view or report bugs on Github
-          </CustomLink>
-        </AlertDescription>
-      </Alert>
-
       <Stack
         p='1em 2em'
         direction={['column', 'row']}
