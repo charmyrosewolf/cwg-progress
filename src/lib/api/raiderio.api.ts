@@ -60,7 +60,7 @@ export async function fetchGuildProgressionByDifficulty(
     .replaceAll(' ', '-');
   const guildName = guild.name.toLowerCase();
 
-  const queryParams = `region=${guild.region}&realm=${realmSlug}&name=${guildName}&fields=raid_encounters:${raidSlug}:${difficulty},raid_progression,raid_rankings}`;
+  const queryParams = `access_key=${process.env.RAIDERIO_ACCESS_KEY}&region=${guild.region}&realm=${realmSlug}&name=${guildName}&fields=raid_encounters:${raidSlug}:${difficulty},raid_progression,raid_rankings}`;
   const url = `${GUILD_URL}/profile?${encodeURI(queryParams)}`;
 
   let options: any = {
@@ -105,7 +105,7 @@ async function fetchRaidRankingsByDifficulty(
 
   const guildIdStrings = guildIds.toString();
 
-  const queryParams = `region=${region}&raid=${raidSlug}&difficulty=${difficulty}&guilds=${guildIdStrings}&limit=200&page=0`;
+  const queryParams = `access_key=${process.env.RAIDERIO_ACCESS_KEY}&region=${region}&raid=${raidSlug}&difficulty=${difficulty}&guilds=${guildIdStrings}&limit=200&page=0`;
   const url = `${RAIDING_URL}/raid-rankings?${encodeURI(queryParams)}`;
 
   let options: any = {
@@ -148,6 +148,6 @@ export async function fetchAllRaidRankingsByDifficulty(
 
     guildIdsToProcess = allIds.splice(0, 10);
   }
-
+  
   return allRankings;
 }
