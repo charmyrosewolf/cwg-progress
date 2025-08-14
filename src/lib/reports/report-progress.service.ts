@@ -186,7 +186,7 @@ export async function generateProgressReport(
 
     const progressionForGuild = builder.getEncounterInfoByGuild(g.rId);
 
-    // if not in list. guild is not raiding, skip them
+    // if not in list. guild has no progress yet, skip them
     if (!progressionForGuild) continue;
 
     const normalKills =
@@ -206,6 +206,13 @@ export async function generateProgressReport(
         (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
         0
       ) || 0;
+
+    const hasKills = Boolean(normalKills + heroicKills + mythicKills);
+
+    // guild has progress, but no kills yet, skip them
+    if (!hasKills) {
+      continue;
+    }
 
     const totalBosses = raid.encounters.length;
 
@@ -309,6 +316,7 @@ export async function generateSummaryReport(
     // if not in list. guild is not raiding, skip them
     if (!progressionForGuild) continue;
 
+    // get # kills for guild, if any
     const normalKills =
       progressionForGuild?.normal.reduce(
         (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
@@ -326,6 +334,13 @@ export async function generateSummaryReport(
         (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
         0
       ) || 0;
+
+   const hasKills = Boolean(normalKills + heroicKills + mythicKills);
+
+    // guild has progress, but no kills yet, skip them
+    if (!hasKills) {
+      continue;
+    }
 
     const totalBosses = raid.encounters.length;
 
