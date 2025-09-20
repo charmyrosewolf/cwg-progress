@@ -56,13 +56,13 @@ const FRACTILLUS: Encounter = {
 
 const NEXUS_KING_SALHADAAR: Encounter = {
   id: NEXUS_KING_SALHADAAR_ID,
-  rSlug: 'nexusking-salhadaar',
+  rSlug: 'nexus-king-salhadaar',
   name: 'Nexus-King Salhadaar'
 };
 
 const DIMENSIUS: Encounter = {
   id: DIMENSIUS_ID,
-  rSlug: 'dimensius-the-alldevouring',
+  rSlug: 'dimensius',
   name: 'Dimensius, the All-Devouring'
 };
 
