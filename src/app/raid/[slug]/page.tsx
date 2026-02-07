@@ -10,8 +10,12 @@ import { getHost } from '@/lib/utils/helper';
 
 import RaidProgress from './raid-progress';
 
-export async function generateMetadata({ params }: any): Promise<Metadata> {
-  const { slug } = params;
+type PageParams = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({
+  params
+}: PageParams): Promise<Metadata> {
+  const { slug } = await params;
 
   const raid = (await getRaidMetadata(slug)) as RaidInfo;
 
@@ -60,8 +64,8 @@ async function getRaidProgress(slug: string) {
   return await generateProgressReportBySlug(slug);
 }
 
-export default async function Page({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default async function Page({ params }: PageParams) {
+  const { slug } = await params;
 
   if (!slug) {
     notFound();
