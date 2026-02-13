@@ -44,7 +44,7 @@ export const revalidate = REVALIDATION_TIME;
 
 export default function RootLayout({ children }: LayoutProps) {
   return (
-    <html lang='en' className={fonts.inter.variable}>
+    <html lang='en' className={fonts.inter.variable} suppressHydrationWarning>
       {/* <body style={{ maxHeight: '100vh', overflow: 'hidden' }}> */}
       <body
         style={{

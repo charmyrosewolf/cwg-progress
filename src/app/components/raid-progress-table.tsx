@@ -1,16 +1,4 @@
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableCaption,
-  TableContainer,
-  Heading,
-  Box,
-  Text
-} from '@chakra-ui/react';
+import { Table, Heading, Box, Text } from '@chakra-ui/react';
 import {
   GuildRaidEncounter,
   GuildRaidProgress,
@@ -27,17 +15,17 @@ type RaidProgressTableProps = {
 export default function RaidProgressTable({ report }: RaidProgressTableProps) {
   const getHeader = (raid: RaidInfo) => {
     return (
-      <Thead>
-        <Tr>
-          <Th>Guild</Th>
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeader>Guild</Table.ColumnHeader>
           {raid.encounters.map((b) => (
-            <Th key={'header' + b.id}>
+            <Table.ColumnHeader key={'header' + b.id}>
               {b.name.substring(0, b.name.indexOf(',')) || b.name}
-            </Th>
+            </Table.ColumnHeader>
           ))}
-          <Th>Summary</Th>
-        </Tr>
-      </Thead>
+          <Table.ColumnHeader>Summary</Table.ColumnHeader>
+        </Table.Row>
+      </Table.Header>
     );
   };
 
@@ -79,7 +67,7 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
 
     return (
       <>
-        <Td textAlign='left'>
+        <Table.Cell textAlign='left'>
           {profileUrl ? (
             <CustomLink
               href={profileUrl}
@@ -91,9 +79,9 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
           ) : (
             <>{guildName}</>
           )}
-        </Td>
+        </Table.Cell>
         {pr.raidEncounters.map((e) => (
-          <Td
+          <Table.Cell
             key={`${pr.guild.slug}-${e.slug}`}
             className={`${e.maxDifficultyDefeated}`}
           >
@@ -105,50 +93,55 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
               </Box>
             ) : null}
             {getPercentage(e)}
-          </Td>
+          </Table.Cell>
         ))}
-        <Td key={`${pr.guild.slug}-normal`} className={difficulty}>
+        <Table.Cell key={`${pr.guild.slug}-normal`} className={difficulty}>
           {summary}
-        </Td>
+        </Table.Cell>
       </>
     );
   };
 
   return (
-    <TableContainer key={report.raid.slug}>
-      <Table colorScheme='gray' size={['sm', null, null, 'md', null, 'lg']}>
-        <TableCaption placement={'top'}>
+    <Table.ScrollArea key={report.raid.slug}>
+      <Table.Root
+        colorPalette='gray'
+        size={['sm', null, null, 'md', null, 'lg']}
+      >
+        <Table.Caption captionSide='top'>
           <Heading as='h2'>{report.raid.name}</Heading>
-        </TableCaption>
+        </Table.Caption>
         {report.raidProgression.length ? (
           <>
             {getHeader(report.raid)}
-            <Tbody>
+            <Table.Body>
               {report.raidProgression.map((pr) => (
-                <Tr key={`${pr.guild.slug}`}>{getCellData(pr)}</Tr>
+                <Table.Row key={`${pr.guild.slug}`}>
+                  {getCellData(pr)}
+                </Table.Row>
               ))}
-            </Tbody>
+            </Table.Body>
           </>
         ) : (
           <>
-            <Thead>
-              <Tr>
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              <Td>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader></Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              <Table.Cell>
                 <Box>
-                  <InfoOutlineIcon boxSize={20} />
+                  <InfoOutlineIcon size={80} />
                 </Box>
                 <Text m='1.25em' fontSize={'lg'}>
                   This season has no data yet.
                 </Text>
-              </Td>
-            </Tbody>
+              </Table.Cell>
+            </Table.Body>
           </>
         )}
-      </Table>
-    </TableContainer>
+      </Table.Root>
+    </Table.ScrollArea>
   );
 }

@@ -1,12 +1,5 @@
 import { RaidProgressEvent } from '@/lib/types';
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Divider,
-  SimpleGrid,
-  Text
-} from '@chakra-ui/react';
+import { Card, SimpleGrid, Text, Separator } from '@chakra-ui/react';
 import Date from './datebox';
 
 type RecentUpdateListProps = {
@@ -16,7 +9,7 @@ export default function RecentUpdatesList({
   recentUpdates
 }: RecentUpdateListProps) {
   return (
-    <SimpleGrid spacing={4}>
+    <SimpleGrid gap={4}>
       {recentUpdates
         ? recentUpdates.map((u, i) => (
             <RecentUpdate key={`update-${i}`} recentUpdate={u}></RecentUpdate>
@@ -40,28 +33,27 @@ function RecentUpdate({ recentUpdate }: RecentUpdateProps) {
     }
   };
   return (
-    <Card
-      direction={{ base: 'column', sm: 'row' }}
+    <Card.Root
+      flexDirection={{ base: 'column', sm: 'row' }}
       overflow='hidden'
       variant='outline'
     >
-      <CardHeader alignSelf={'center'}>
+      <Card.Header alignSelf={'center'} gap='0' py='var(--card-padding)'>
         <Date
           dt={recentUpdate.dateOccurred.toISOString()}
           type='default'
           dateFormat={'LLL do'}
         ></Date>
-        <br />
         <Date
           dt={recentUpdate.dateOccurred.toISOString()}
           type='default'
           dateFormat={'p'}
         ></Date>
-      </CardHeader>
-      <Divider orientation='vertical' />
-      <CardBody alignContent={'center'}>
+      </Card.Header>
+      <Separator orientation='vertical' />
+      <Card.Body alignContent={'center'}>
         <Text>{getText()}</Text>
-      </CardBody>
-    </Card>
+      </Card.Body>
+    </Card.Root>
   );
 }

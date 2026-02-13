@@ -16,20 +16,22 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "format:staged": "prettier --write --tab-width 2 --single-quote --jsx-single-quote --trailing-comma none $(git diff --cached --name-only)"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",
-    "@chakra-ui/next-js": "^2.2.0",
-    "@chakra-ui/react": "^2.8.2",
-    "@emotion/react": "^11.11.4",
+    "@chakra-ui/react": "^3.0.0",
+    "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.11.5",
     "@next/env": "^16.1.6",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.1.9",
     "next": "15.5.12",
+    "next-themes": "^0.4.6",
     "react": "^18",
-    "react-dom": "^18"
+    "react-dom": "^18",
+    "react-icons": "^5.5.0"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -29,7 +29,10 @@ export async function postQuery(
     })
   };
 
-  const res = await fetch(PUBLIC_URL, options);
+  const res = await fetch(PUBLIC_URL, {
+    ...options,
+    next: { revalidate: 3600 }
+  });
 
   const data = await res.json();
 

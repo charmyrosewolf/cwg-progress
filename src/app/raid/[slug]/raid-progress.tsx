@@ -16,7 +16,7 @@ export default function RaidProgress({ progressReport }: RaidProgressProps) {
         align='center'
         justify={'center'}
         textAlign='center'
-        spacing={4}
+        gap={4}
       >
         {RAIDS && RAIDS.length > 1
           ? RAIDS.map((r) => (
@@ -39,7 +39,6 @@ export default function RaidProgress({ progressReport }: RaidProgressProps) {
           <UpdateTime lastUpdate={progressReport.createdOn} />
         ) : null}
       </Box>
-
       <Box mb='1em' display={'flex'} justifyContent={'right'}>
         <TableKey
           breakpoint='500px'

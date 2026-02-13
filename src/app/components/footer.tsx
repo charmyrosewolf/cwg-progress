@@ -1,6 +1,6 @@
 'use client';
-import { Link } from '@chakra-ui/next-js';
-import { Flex, Stack, Text } from '@chakra-ui/react';
+import NextLink from 'next/link';
+import { Flex, Stack, Text, Link } from '@chakra-ui/react';
 
 export default function Footer() {
   return (
@@ -8,12 +8,14 @@ export default function Footer() {
       <Stack>
         <Text>
           © 2024 CWG Progress Tracker. Made with &hearts; and&nbsp;
-          <Link href='https://raider.io' target='_blank'>
-            Raider.io
+          <Link variant='underline' target='_blank' asChild>
+            <NextLink href='https://raider.io'>Raider.io</NextLink>
           </Link>
           &nbsp;and&nbsp;
-          <Link href='https://www.warcraftlogs.com/' target='_blank'>
-            Warcraft Logs
+          <Link variant='underline' target='_blank' asChild>
+            <NextLink href='https://www.warcraftlogs.com/'>
+              Warcraft Logs
+            </NextLink>
           </Link>
           &nbsp;by Charmy Rosewolf
         </Text>

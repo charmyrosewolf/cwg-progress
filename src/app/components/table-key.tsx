@@ -1,16 +1,4 @@
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
-  TableCaption,
-  Show,
-  Hide,
-  Heading
-} from '@chakra-ui/react';
+import { Table, Box } from '@chakra-ui/react';
 
 type TableKeyProps = {
   maxWidth?: string;
@@ -25,51 +13,58 @@ export default function TableKey({
 }: TableKeyProps) {
   return (
     <>
-      <Hide breakpoint={`(min-width: ${breakpoint})`}>
-        <TableContainer maxWidth={maxWidth}>
-          <Table colorScheme='gray' size='sm'>
-            <TableCaption placement={'top'}>Table Key</TableCaption>
-            <Tbody>
-              <Tr>
-                <Td className='N' textAlign={'center'}>
+      {/* Vertical layout — hidden on wide screens */}
+      <Box css={{ [`@media (min-width: ${breakpoint})`]: { display: 'none' } }}>
+        <Table.ScrollArea maxWidth={maxWidth}>
+          <Table.Root colorPalette='gray' size='sm'>
+            <Table.Caption captionSide='top'>Table Key</Table.Caption>
+            <Table.Body>
+              <Table.Row>
+                <Table.Cell className='N' textAlign={'center'}>
                   {labels[0]}
-                </Td>
-              </Tr>
-              <Tr>
-                <Td className='H' textAlign={'center'}>
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.Cell className='H' textAlign={'center'}>
                   {labels[1]}
-                </Td>
-              </Tr>
-              <Tr>
-                <Td className='M' textAlign={'center'}>
+                </Table.Cell>
+              </Table.Row>
+              <Table.Row>
+                <Table.Cell className='M' textAlign={'center'}>
                   {labels[2]}
-                </Td>
-              </Tr>
-            </Tbody>
-          </Table>
-        </TableContainer>
-      </Hide>
+                </Table.Cell>
+              </Table.Row>
+            </Table.Body>
+          </Table.Root>
+        </Table.ScrollArea>
+      </Box>
 
-      <Show breakpoint={`(min-width: ${breakpoint})`}>
-        <TableContainer>
-          <Table colorScheme='gray' size='sm'>
-            <TableCaption placement={'top'}>Table Key</TableCaption>
-            <Tbody>
-              <Tr>
-                <Td className='N' textAlign={'center'}>
+      {/* Horizontal layout — shown on wide screens */}
+      <Box
+        css={{
+          display: 'none',
+          [`@media (min-width: ${breakpoint})`]: { display: 'block' }
+        }}
+      >
+        <Table.ScrollArea>
+          <Table.Root colorPalette='gray' size='sm'>
+            <Table.Caption captionSide='top'>Table Key</Table.Caption>
+            <Table.Body>
+              <Table.Row>
+                <Table.Cell className='N' textAlign={'center'}>
                   {labels[0]}
-                </Td>
-                <Td className='H' textAlign={'center'}>
+                </Table.Cell>
+                <Table.Cell className='H' textAlign={'center'}>
                   {labels[1]}
-                </Td>
-                <Td className='M' textAlign={'center'}>
+                </Table.Cell>
+                <Table.Cell className='M' textAlign={'center'}>
                   {labels[2]}
-                </Td>
-              </Tr>
-            </Tbody>
-          </Table>
-        </TableContainer>
-      </Show>
+                </Table.Cell>
+              </Table.Row>
+            </Table.Body>
+          </Table.Root>
+        </Table.ScrollArea>
+      </Box>
     </>
   );
 }

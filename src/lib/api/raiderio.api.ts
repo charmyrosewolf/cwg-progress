@@ -68,7 +68,10 @@ export async function fetchGuildProgressionByDifficulty(
     headers: headers
   };
 
-  const res = await fetch(url, options);
+  const res = await fetch(url, {
+    ...options,
+    next: { revalidate: 3600 }
+  });
 
   const data = await res.json();
 
@@ -113,7 +116,10 @@ async function fetchRaidRankingsByDifficulty(
     headers: headers
   };
 
-  const res = await fetch(url, options);
+  const res = await fetch(url, {
+    ...options,
+    next: { revalidate: 3600 }
+  });
 
   const data = (await res.json()) as RaiderIORaidDifficultyRankings;
 

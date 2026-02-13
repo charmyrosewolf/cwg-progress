@@ -1,11 +1,4 @@
-import {
-  Box,
-  Flex,
-  Heading,
-  ListItem,
-  OrderedList,
-  Text
-} from '@chakra-ui/react';
+import { Box, Flex, Heading, Text, List } from '@chakra-ui/react';
 import CustomLink from '../components/custom-link';
 
 export default async function Page() {
@@ -26,15 +19,15 @@ async function Help() {
           <Text fontSize='xl'>
             To ensure your guild&apos;s progress on this site is accurate:
           </Text>
-          <OrderedList fontSize='xl' mt='.25em'>
-            <ListItem mb='.25em'>
+          <List.Root as='ol' fontSize='xl' mt='.25em'>
+            <List.Item mb='.25em'>
               Update your raider.io page frequently for accurate progress, and
-            </ListItem>
-            <ListItem mb='.25em'>
+            </List.Item>
+            <List.Item mb='.25em'>
               Update your guild&apos;s warcraft logs (not personal logs) with
               the latest raid logs for accurate links.
-            </ListItem>
-          </OrderedList>
+            </List.Item>
+          </List.Root>
         </Box>
         <Box m='1em'>
           <Heading as='h3' mb='.5em'>

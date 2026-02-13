@@ -1,16 +1,5 @@
 import { GuildRaidProgressStatistics, SummaryReport } from '@/lib/types';
-import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableCaption,
-  TableContainer,
-  Box,
-  Text
-} from '@chakra-ui/react';
+import { Table, Box, Text } from '@chakra-ui/react';
 import CustomLink from './custom-link';
 import { InfoOutlineIcon } from './chakra-components';
 
@@ -36,7 +25,7 @@ export default function SummaryTable({
 
     return (
       <>
-        <Td textAlign='left'>
+        <Table.Cell textAlign='left'>
           {profileUrl ? (
             <CustomLink
               href={profileUrl}
@@ -48,67 +37,77 @@ export default function SummaryTable({
           ) : (
             <>{guildName}</>
           )}
-        </Td>
+        </Table.Cell>
         {summaries.map(({ level, summary }) => {
           return (
-            <Td key={`${slug}-${level}`} className={difficulty}>
+            <Table.Cell key={`${slug}-${level}`} className={difficulty}>
               {summary}
-            </Td>
+            </Table.Cell>
           );
         })}
-        <Td className={difficulty}>{currentProgression}</Td>
+        <Table.Cell className={difficulty}>{currentProgression}</Table.Cell>
       </>
     );
   };
 
   return (
-    <TableContainer maxWidth={maxWidth}>
-      <Table colorScheme='gray' size='sm'>
-        <TableCaption placement={'top'} fontSize='1.5rem'>
+    <Table.ScrollArea maxWidth={maxWidth}>
+      <Table.Root colorPalette='gray' size='sm'>
+        <Table.Caption captionSide='top' fontSize='1.5rem'>
           <CustomLink
             href={`/raid/${summaryReport.raid.slug}`}
             textDecoration='underline'
           >
             {summaryReport.raid.name}
           </CustomLink>
-        </TableCaption>
+        </Table.Caption>
         {summaryReport.summaries.length ? (
           <>
-            <Thead>
-              <Tr>
-                <Th>Guild</Th>
-                <Th textAlign='center'>Normal</Th>
-                <Th textAlign='center'>Heroic</Th>
-                <Th textAlign='center'>Mythic</Th>
-                <Th textAlign='center'>Current Boss</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Guild</Table.ColumnHeader>
+                <Table.ColumnHeader textAlign='center'>
+                  Normal
+                </Table.ColumnHeader>
+                <Table.ColumnHeader textAlign='center'>
+                  Heroic
+                </Table.ColumnHeader>
+                <Table.ColumnHeader textAlign='center'>
+                  Mythic
+                </Table.ColumnHeader>
+                <Table.ColumnHeader textAlign='center'>
+                  Current Boss
+                </Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
               {summaryReport.summaries.map((sr) => (
-                <Tr key={`${sr.guild.slug}-summary`}>{getCellData(sr)}</Tr>
+                <Table.Row key={`${sr.guild.slug}-summary`}>
+                  {getCellData(sr)}
+                </Table.Row>
               ))}
-            </Tbody>
+            </Table.Body>
           </>
         ) : (
           <>
-            <Thead>
-              <Tr>
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              <Td>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader></Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              <Table.Cell>
                 <Box>
-                  <InfoOutlineIcon boxSize={12} />
+                  <InfoOutlineIcon size={48} />
                 </Box>
                 <Text m='1.25em' fontSize={'md'}>
                   This season has no data yet.
                 </Text>
-              </Td>
-            </Tbody>
+              </Table.Cell>
+            </Table.Body>
           </>
         )}
-      </Table>
-    </TableContainer>
+      </Table.Root>
+    </Table.ScrollArea>
   );
 }

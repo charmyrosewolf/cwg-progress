@@ -1,41 +1,28 @@
-import { defineStyle, defineStyleConfig } from '@chakra-ui/react';
+import { defineRecipe } from '@chakra-ui/react';
 
-const defaultStyle = defineStyle({
-  color: 'blue.400',
-  textDecoration: 'underline',
-
-  _hover: {
-    color: 'blue.500'
-  },
-
-  _dark: {
-    color: 'blue.100',
-
-    _hover: {
-      color: 'blue.200'
+export const linkRecipe = defineRecipe({
+  variants: {
+    variant: {
+      underline: {
+        color: { base: 'blue.400', _dark: 'blue.100' },
+        textDecoration: 'underline',
+        _hover: {
+          color: { base: 'blue.500', _dark: 'blue.200' }
+        }
+      },
+      plain: {
+        _hover: {
+          color: { base: 'blue.500', _dark: 'blue.200' }
+        }
+      },
+      header: {
+        color: { base: 'black', _dark: 'white' },
+        textDecoration: 'none',
+        _hover: {
+          color: { base: 'blue.500', _dark: 'blue.200' },
+          textDecoration: 'none'
+        }
+      }
     }
   }
 });
-
-const header = defineStyle({
-  color: 'black',
-  textDecoration: 'none',
-
-  _hover: {
-    textDecoration: 'none'
-  },
-
-  _dark: {
-    color: 'white',
-
-    _hover: {}
-  }
-});
-
-export const linkTheme = defineStyleConfig({
-  variants: { header },
-  baseStyle: defaultStyle
-});
-
-// Now we can use the new `header` variant
-// <Link variant="header">...</Link>

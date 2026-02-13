@@ -1,17 +1,27 @@
-import { extendTheme, type ThemeConfig } from '@chakra-ui/react';
+import {
+  createSystem,
+  defaultConfig,
+  defineConfig,
+  mergeConfigs
+} from '@chakra-ui/react';
+import { tableSlotRecipe } from './theme/table';
+import { linkRecipe } from './theme/link';
 
-// custome themes
-import { tableTheme } from './theme/table';
-import { linkTheme } from './theme/link';
+const customConfig = defineConfig({
+  theme: {
+    tokens: {
+      fonts: {
+        heading: { value: 'var(--font-inter)' },
+        body: { value: 'var(--font-inter)' }
+      }
+    },
+    recipes: {
+      link: linkRecipe
+    },
+    slotRecipes: {
+      table: tableSlotRecipe
+    }
+  }
+});
 
-const theme = extendTheme({
-  fonts: {
-    heading: 'var(--font-inter)',
-    body: 'var(--font-inter)'
-  },
-  components: { Table: tableTheme, Link: linkTheme },
-  initialColorMode: 'light',
-  useSystemColorMode: false
-} as ThemeConfig);
-
-export default theme;
+export const system = createSystem(mergeConfigs(defaultConfig, customConfig));

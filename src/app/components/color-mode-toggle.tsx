@@ -1,10 +1,6 @@
-import { MoonIcon, SunIcon } from '@chakra-ui/icons';
-import {
-  IconButton,
-  VStack,
-  useColorMode,
-  useColorModeValue
-} from '@chakra-ui/react';
+import { useColorMode, useColorModeValue } from '@/components/ui/color-mode';
+import { ClientOnly, IconButton, Skeleton, VStack } from '@chakra-ui/react';
+import { MoonIcon, SunIcon } from './chakra-components';
 
 // export function ColorModeToggle() {
 //   const { colorMode, toggleColorMode } = useColorMode();
@@ -21,17 +17,20 @@ function ColorModeToggle() {
   const { toggleColorMode } = useColorMode();
   return (
     <VStack>
-      <IconButton
-        aria-label={useColorModeValue(
-          'change to dark mode',
-          'change to light mode'
-        )}
-        variant='outline'
-        colorScheme='black'
-        size='lg'
-        icon={useColorModeValue(<MoonIcon />, <SunIcon />)}
-        onClick={toggleColorMode}
-      />
+      <ClientOnly fallback={<Skeleton boxSize='12' />}>
+        <IconButton
+          aria-label={useColorModeValue(
+            'change to dark mode',
+            'change to light mode'
+          )}
+          variant='outline'
+          colorPalette='black'
+          size='lg'
+          onClick={toggleColorMode}
+        >
+          {useColorModeValue(<MoonIcon />, <SunIcon />)}
+        </IconButton>
+      </ClientOnly>
     </VStack>
   );
 }

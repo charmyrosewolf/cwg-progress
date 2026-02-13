@@ -1,12 +1,6 @@
 'use client';
-import {
-  Flex,
-  Heading,
-  Box,
-  Button,
-  Stack
-} from '@chakra-ui/react';
-import { Link } from '@chakra-ui/next-js';
+import NextLink from 'next/link';
+import { Flex, Heading, Box, Button, Stack, Link } from '@chakra-ui/react';
 import ColorModeToggle from './color-mode-toggle';
 import CustomLink from './custom-link';
 
@@ -25,9 +19,16 @@ export default function Header({}: HeaderProps) {
         justifyContent={'space-between'}
       >
         <Box w='10rem'></Box>
-        <Heading justifySelf='center' as='h1' m='1rem 0' fontSize={'2.6rem'}>
-          <Link variant='header' href='/'>
-            {name}
+        <Heading
+          justifySelf='center'
+          as='h1'
+          m='1rem 0'
+          fontSize={'2.6rem'}
+          lineHeight='normal'
+        >
+          {/* @ts-expect-error - custom variant from linkRecipe in theme */}
+          <Link variant='header' asChild>
+            <NextLink href='/'>{name}</NextLink>
           </Link>
         </Heading>
         <Stack
@@ -36,8 +37,10 @@ export default function Header({}: HeaderProps) {
           justifyContent={'space-around'}
           alignItems={'flex-end'}
         >
-          <CustomLink href={`/help`} textDecoration='underline'>
-            <Button size='lg'>Help</Button>
+          <CustomLink href={`/help`} variant='plain'>
+            <Button size='lg' variant='surface' px='6'>
+              Help
+            </Button>
           </CustomLink>
           <ColorModeToggle />
         </Stack>

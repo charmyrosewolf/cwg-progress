@@ -50,7 +50,7 @@ async function Home({ summaryReports }: HomeProps) {
         justifyContent={'space-evenly'}
       >
         <Box maxWidth={'100%'}>
-          <Heading as='h2' textAlign='center' m='1rem 0'>
+          <Heading as='h2' size='2xl' textAlign='center' m='1rem 0'>
             Raid Progression Summary
           </Heading>
 
@@ -65,7 +65,7 @@ async function Home({ summaryReports }: HomeProps) {
             />
           </Box>
 
-          <SimpleGrid h='auto' mt='1em' columns={1} spacing={10}>
+          <SimpleGrid h='auto' mt='1em' columns={1} gap={10}>
             {summaryReports && summaryReports.length
               ? summaryReports.map((r) => (
                   <SummaryTable
