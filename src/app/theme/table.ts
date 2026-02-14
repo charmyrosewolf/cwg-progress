@@ -25,7 +25,9 @@ export const tableSlotRecipe = defineSlotRecipe({
         },
         caption: {
           color: { base: 'colorPalette.600', _dark: 'colorPalette.100' },
-          textStyle: 'md'
+          textStyle: 'md',
+          mt: '16px',
+          mb: '16px'
         },
         body: {
           '& tr': {
@@ -55,13 +57,13 @@ export const tableSlotRecipe = defineSlotRecipe({
               }
             },
             '& td.normal, & td.N': {
-              background: { base: 'green.100', _dark: 'green.700' }
+              background: { base: 'green.200', _dark: 'green.700' }
             },
             '& td.heroic, & td.H': {
-              background: { base: 'blue.100', _dark: 'blue.700' }
+              background: { base: 'blue.200', _dark: 'blue.700' }
             },
             '& td.mythic, & td.M': {
-              background: { base: 'purple.100', _dark: 'purple.700' }
+              background: { base: 'purple.200', _dark: 'purple.700' }
             }
           }
         },

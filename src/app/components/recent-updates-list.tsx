@@ -51,7 +51,7 @@ function RecentUpdate({ recentUpdate }: RecentUpdateProps) {
         ></Date>
       </Card.Header>
       <Separator orientation='vertical' />
-      <Card.Body alignContent={'center'}>
+      <Card.Body justifyContent={'center'}>
         <Text>{getText()}</Text>
       </Card.Body>
     </Card.Root>
