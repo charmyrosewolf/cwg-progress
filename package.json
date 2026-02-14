@@ -13,10 +13,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "lint": "eslint src/",
     "format:staged": "prettier --write --tab-width 2 --single-quote --jsx-single-quote --trailing-comma none $(git diff --cached --name-only)"
   },
   "dependencies": {
