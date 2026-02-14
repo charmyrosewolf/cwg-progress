@@ -126,6 +126,15 @@ export const THE_FISH_AND_BREAD_TRICK: GuildInfo = {
   faction: 'horde'
 };
 
+const HAWKS_NEST: GuildInfo = {
+  rId: 1985559,
+  name: 'Hawks Nest',
+  slug: 'hawks-nest',
+  realm: 'Area 52',
+  region: 'us',
+  faction: 'horde'
+};
+
 // FOR WARCRAFT LOGS ONLY
 // not an actual guild - this is a wlogs only team for the community logs
 // https://www.warcraftlogs.com/guild/id/697334/
@@ -157,7 +166,8 @@ export const GUILDS = [
   RENEWED_HOPE,
   SALVATIONS_DAWN,
   SALT_AND_LIGHT,
-  THE_FISH_AND_BREAD_TRICK
+  THE_FISH_AND_BREAD_TRICK,
+  HAWKS_NEST
 ];
 
 // test
