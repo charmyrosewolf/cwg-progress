@@ -225,8 +225,8 @@ export type ProgressReport = {
 
 /** constants **/
 
-// revalidate data every 4 hours for now
-export const REVALIDATION_TIME = 3600 * 4;
+// Revalidation interval (in seconds) - controls page ISR and all API refresh cycles
+export const REVALIDATION_TIME = 3600 * 4; // 4 hours
 
 // CAREFUL ABOUT RAISING THIS NUMBER DUE TO RATE LIMITS
 export const REPORT_LIMIT = 50;

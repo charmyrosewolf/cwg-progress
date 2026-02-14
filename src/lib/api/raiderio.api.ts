@@ -3,6 +3,7 @@
 
 import { GUILDS } from '../data';
 import { RAID_DIFFICULTY, GuildInfo } from '../types';
+import { getDevCacheOptions } from '../utils/helper';
 import {
   RaiderIOGuildRaidRanking,
   RaiderIORaidDifficultyRankings
@@ -65,13 +66,11 @@ export async function fetchGuildProgressionByDifficulty(
 
   let options: any = {
     method: 'GET',
-    headers: headers
+    headers: headers,
+    ...getDevCacheOptions()
   };
 
-  const res = await fetch(url, {
-    ...options,
-    next: { revalidate: 3600 }
-  });
+  const res = await fetch(url, options);
 
   const data = await res.json();
 
@@ -113,13 +112,11 @@ async function fetchRaidRankingsByDifficulty(
 
   let options: any = {
     method: 'GET',
-    headers: headers
+    headers: headers,
+    ...getDevCacheOptions()
   };
 
-  const res = await fetch(url, {
-    ...options,
-    next: { revalidate: 3600 }
-  });
+  const res = await fetch(url, options);
 
   const data = (await res.json()) as RaiderIORaidDifficultyRankings;
 

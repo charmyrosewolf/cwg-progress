@@ -1,4 +1,6 @@
 /** Warcraft Logs APIv2 */
+import { getDevCacheOptions } from '@/lib/utils/helper';
+
 const PUBLIC_URL = 'https://www.warcraftlogs.com/api/v2/client';
 
 function getHeaders(): Headers {
@@ -26,13 +28,11 @@ export async function postQuery(
     body: JSON.stringify({
       query: query,
       variables: variables
-    })
+    }),
+    ...getDevCacheOptions()
   };
 
-  const res = await fetch(PUBLIC_URL, {
-    ...options,
-    next: { revalidate: 3600 }
-  });
+  const res = await fetch(PUBLIC_URL, options);
 
   const data = await res.json();
 

@@ -5,6 +5,16 @@ export function isDevelopment(): boolean {
   return process.env.NODE_ENV === 'development';
 }
 
+/**
+ * Returns fetch cache options for dev mode only.
+ * In dev mode, Next.js defaults to no-store, so we force-cache to protect API rate limits.
+ * In production, page-level ISR handles caching — adding fetch-level revalidate
+ * causes conflicts (see commit 09c8cf4), so we return no cache options.
+ */
+export function getDevCacheOptions(): RequestInit {
+  return isDevelopment() ? { cache: 'force-cache' as RequestCache } : {};
+}
+
 export function getHost(): string {
   return isDevelopment()
     ? `http://localhost:3000`
