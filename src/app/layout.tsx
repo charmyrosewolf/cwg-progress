@@ -47,6 +47,7 @@ export default function RootLayout({ children }: LayoutProps) {
     <html lang='en' className={fonts.inter.variable} suppressHydrationWarning>
       {/* <body style={{ maxHeight: '100vh', overflow: 'hidden' }}> */}
       <body
+        suppressHydrationWarning
         style={{
           display: 'flex',
           flexDirection: 'column',

@@ -22,20 +22,24 @@
   "dependencies": {
     "@chakra-ui/react": "^3.0.0",
     "@emotion/react": "^11.14.0",
-    "@next/env": "^16.1.6",
+    "@next/env": "16.1.6",
     "date-fns": "^3.6.0",
-    "next": "15.5.12",
+    "next": "16.1.6",
     "next-themes": "^0.4.6",
-    "react": "^19",
-    "react-dom": "^19",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "react-icons": "^5.5.0"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^8",
-    "eslint-config-next": "15.5.12",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3"
   }
 }
