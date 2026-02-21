@@ -1,6 +1,6 @@
 import { Box, Heading, SimpleGrid, Stack } from '@chakra-ui/react';
 
-import { RAIDS } from '@/lib/data';
+import { getRAIDS } from '@/lib/data';
 import { generateSummaryReportBySlug } from '@/lib/reports/report';
 import { RaidProgressEvent, SummaryReport } from '@/lib/types';
 
@@ -10,6 +10,7 @@ import RecentUpdatesList from './components/recent-updates-list';
 import UpdateTime from './components/update-time';
 
 export default async function Page() {
+  const RAIDS = await getRAIDS();
   const summaryReportsPromise = RAIDS.map(async (r) => {
     return await generateSummaryReportBySlug(r.slug);
   });

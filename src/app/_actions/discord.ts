@@ -1,5 +1,7 @@
 'use server';
 
+// TODO: ensure this feature is disabled for now
+
 /**
  * sendDiscordMessage sends a discord message through a webhook
  *

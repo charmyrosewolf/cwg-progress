@@ -1,9 +1,11 @@
 import { sendDiscordMessage } from '@/app/_actions/discord';
-import { RAIDS } from '../data';
+import { getRAIDS } from '../data';
 import { getHost, getUnixTimestampInSeconds } from '@/lib/utils/helper';
 import { RaidInfo, RaidProgressEvent } from '@/lib/types';
 
 import { generateProgressReportBySlug } from './report';
+
+// TODO: ensure this feature is disabled for now
 
 export async function getLatestEvents({ slug }: RaidInfo) {
   let report = await generateProgressReportBySlug(slug);
@@ -54,6 +56,7 @@ export async function sendDiscordUpdate() {
 
   const time = new Date();
 
+  const RAIDS = await getRAIDS();
   const recentUpdatesPromises = RAIDS.map(getLatestEvents);
 
   const recentUpdates = (await Promise.all(recentUpdatesPromises)).filter(

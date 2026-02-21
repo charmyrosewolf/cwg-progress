@@ -1,4 +1,4 @@
-import { RAIDS } from '@/lib/data';
+import { getRAIDS } from '@/lib/data';
 import { ProgressReport, RaidInfo, SummaryReport } from '@/lib/types';
 
 import {
@@ -14,6 +14,7 @@ export async function generateSummaryReportBySlug(
 ): Promise<SummaryReport | null> {
   console.log('\ngenerating statistics for:', slug);
 
+  const RAIDS = await getRAIDS();
   const raid = RAIDS.find((r) => r.slug === slug);
 
   // raid may not exist
@@ -32,6 +33,7 @@ export async function generateProgressReportBySlug(
 ): Promise<ProgressReport | null> {
   console.log('\ngenerating report for:', slug);
 
+  const RAIDS = await getRAIDS();
   const raid = RAIDS.find((r) => r.slug === slug);
 
   // raid may not exist
@@ -46,6 +48,7 @@ export async function generateProgressReportBySlug(
  * Get raid metadata
  * */
 export async function getRaidMetadata(slug: string): Promise<RaidInfo | null> {
+  const RAIDS = await getRAIDS();
   const raid = RAIDS.find((r) => r.slug === slug);
 
   // raid may not exist
@@ -58,6 +61,8 @@ export async function getRaidMetadata(slug: string): Promise<RaidInfo | null> {
  * Get all raid metadata
  * */
 export async function getAllRaidMetadata(): Promise<RaidInfo[] | null> {
+  const RAIDS = await getRAIDS();
+
   // raid may not exist
   if (!RAIDS) return null;
 

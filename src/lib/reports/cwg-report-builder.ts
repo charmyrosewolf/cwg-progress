@@ -7,7 +7,7 @@ import {
   WLOGS_RAID_DIFFICULTY,
   wlogsDifficultiesMap
 } from '@/lib/api/wlogs.types';
-import { SEASON_END_DATE, SEASON_START_DATE } from '@/lib/data';
+import { getSeasonStartDate, getSeasonEndDate } from '@/lib/data';
 import { CWG } from '@/lib/data/guilds';
 import {
   flattenWLOGReportFights,
@@ -144,10 +144,11 @@ export async function buildCWGProgressReport(
 export async function getCWGWlogReportFights(
   raid: RaidInfo
 ): Promise<WlogFlattenedFight[] | null> {
-  const startTs = new Date(SEASON_START_DATE).getTime();
-  const endTs = SEASON_END_DATE
-    ? new Date(SEASON_END_DATE).getTime()
-    : undefined;
+  const seasonStartDate = await getSeasonStartDate();
+  const seasonEndDate = await getSeasonEndDate();
+
+  const startTs = new Date(seasonStartDate).getTime();
+  const endTs = seasonEndDate ? new Date(seasonEndDate).getTime() : undefined;
 
   const queryVars: BossDataQueryVars = {
     name: CWG.name,

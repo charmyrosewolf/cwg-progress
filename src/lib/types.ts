@@ -35,6 +35,34 @@ export type WlogFlattenedFight = {
   fightPercentage: number;
 };
 
+/** Raider.io static data API response types */
+export type RaiderIOStaticEncounter = {
+  slug: string;
+  name: string;
+};
+
+export type RaiderIOStaticRaid = {
+  slug: string;
+  name: string;
+  short_name: string;
+  encounters: RaiderIOStaticEncounter[];
+  starts: { us: string; eu: string };
+  ends: { us: string; eu: string };
+};
+
+/** WCL worldData API response types */
+export type WCLZoneEncounter = {
+  id: number;
+  name: string;
+};
+
+export type WCLExpansionZone = {
+  id: number;
+  name: string;
+  frozen: boolean;
+  encounters: WCLZoneEncounter[];
+};
+
 /** RAID types */
 export type RaidInfo = {
   name: string;

@@ -15,8 +15,12 @@ import {
   FightMap
 } from '@/lib/types';
 
-// TODO: update this each season.
-import { SEASON_END_DATE, SEASON_START_DATE, GUILDS, isCWG } from '@/lib/data';
+import {
+  GUILDS,
+  isCWG,
+  getSeasonStartDate,
+  getSeasonEndDate
+} from '@/lib/data';
 
 import {
   WlogReport,
@@ -38,7 +42,9 @@ import {
 import { ReportBuilder } from '@/lib/reports/report-builder';
 
 async function getWlogReportFightsByGuild(
-  guild: GuildInfo
+  guild: GuildInfo,
+  seasonStartDate: string,
+  seasonEndDate: string | number
 ): Promise<FightMap | null> {
   const { name, realm, region, slug } = guild;
 
@@ -46,8 +52,8 @@ async function getWlogReportFightsByGuild(
     name,
     server: realm.toLowerCase().replaceAll("'", ''),
     region: region,
-    startTime: new Date(SEASON_START_DATE).getTime(),
-    endTime: SEASON_END_DATE ? new Date(SEASON_END_DATE).getTime() : undefined,
+    startTime: new Date(seasonStartDate).getTime(),
+    endTime: seasonEndDate ? new Date(seasonEndDate).getTime() : undefined,
     reportLimit: REPORT_LIMIT
   };
 
@@ -106,7 +112,11 @@ function createEventsByGuild(
  *
  * @returns {ReportBuilder} the created map of pull data
  */
-export async function getReportBuilder(raid: RaidInfo): Promise<ReportBuilder> {
+export async function getReportBuilder(
+  raid: RaidInfo,
+  seasonStartDate: string,
+  seasonEndDate: string | number
+): Promise<ReportBuilder> {
   const normalGuildRankings = await fetchAllRaidRankingsByDifficulty(
     raid.slug,
     'normal'
@@ -137,7 +147,11 @@ export async function getReportBuilder(raid: RaidInfo): Promise<ReportBuilder> {
 
     // console.log(`pulling wlogs for ${guild?.name}`);
 
-    const wlogPulls: FightMap | null = await getWlogReportFightsByGuild(guild);
+    const wlogPulls: FightMap | null = await getWlogReportFightsByGuild(
+      guild,
+      seasonStartDate,
+      seasonEndDate
+    );
 
     if (wlogPulls) {
       builder.setWlogFightsByGuild(Number(rId), wlogPulls);
@@ -154,11 +168,15 @@ export async function generateProgressReport(
 ): Promise<ProgressReport | null> {
   // raid may not exist
   if (!raid) return null;
+
+  const seasonStartDate = await getSeasonStartDate();
+  const seasonEndDate = await getSeasonEndDate();
+
   // Fetch progress for raid
   let raidProgression: GuildRaidProgress[] = [];
   const allEvents: RaidProgressEvent[] = [];
 
-  const builder = await getReportBuilder(raid);
+  const builder = await getReportBuilder(raid, seasonStartDate, seasonEndDate);
 
   for (const g of GUILDS) {
     // if cwg build custom rankings
@@ -269,10 +287,13 @@ export async function generateProgressReport(
 export async function generateSummaryReport(
   raid: RaidInfo
 ): Promise<SummaryReport | null> {
+  const seasonStartDate = await getSeasonStartDate();
+  const seasonEndDate = await getSeasonEndDate();
+
   const allSummaries: GuildRaidProgressStatistics[] = [];
   const allEvents: RaidProgressEvent[] = [];
 
-  const builder = await getReportBuilder(raid);
+  const builder = await getReportBuilder(raid, seasonStartDate, seasonEndDate);
 
   for (const g of GUILDS) {
     // if cwg build custom rankings
@@ -335,7 +356,7 @@ export async function generateSummaryReport(
         0
       ) || 0;
 
-   const hasKills = Boolean(normalKills + heroicKills + mythicKills);
+    const hasKills = Boolean(normalKills + heroicKills + mythicKills);
 
     // guild has progress, but no kills yet, skip them
     if (!hasKills) {

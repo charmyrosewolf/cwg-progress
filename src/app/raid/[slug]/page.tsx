@@ -5,6 +5,7 @@ import {
   getAllRaidMetadata,
   getRaidMetadata
 } from '@/lib/reports/report';
+import { getRAIDS } from '@/lib/data';
 import { RaidInfo } from '@/lib/types';
 import { getHost } from '@/lib/utils/helper';
 
@@ -71,11 +72,14 @@ export default async function Page({ params }: PageParams) {
     notFound();
   }
 
-  const report = await getRaidProgress(slug);
+  const [report, raids] = await Promise.all([
+    getRaidProgress(slug),
+    getRAIDS()
+  ]);
 
   if (!report) {
     notFound();
   }
 
-  return <RaidProgress progressReport={report} />;
+  return <RaidProgress progressReport={report} raids={raids} />;
 }

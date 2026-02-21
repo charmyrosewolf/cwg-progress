@@ -2,8 +2,8 @@
 /** https://raider.io/api# */
 
 import { GUILDS } from '../data';
-import { RAID_DIFFICULTY, GuildInfo } from '../types';
-import { getDevCacheOptions } from '../utils/helper';
+import { RAID_DIFFICULTY, GuildInfo, RaiderIOStaticRaid } from '../types';
+import { devCache } from '../utils/dev-cache';
 import {
   RaiderIOGuildRaidRanking,
   RaiderIORaidDifficultyRankings
@@ -48,13 +48,25 @@ function getHeaders(): Headers {
   return headers;
 }
 
+async function rawFetchGuildProgression(
+  url: string
+): Promise<{ data: any; ok: boolean }> {
+  const headers = getHeaders();
+
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: headers
+  });
+
+  const data = await res.json();
+  return { data, ok: res.ok };
+}
+
 export async function fetchGuildProgressionByDifficulty(
   raidSlug: string,
   guild: GuildInfo,
   difficulty: RAID_DIFFICULTY
 ): Promise<RawData> {
-  const headers = getHeaders();
-
   const realmSlug = guild.realm
     .toLowerCase()
     .replaceAll("'", '')
@@ -64,33 +76,33 @@ export async function fetchGuildProgressionByDifficulty(
   const queryParams = `access_key=${process.env.RAIDERIO_ACCESS_KEY}&region=${guild.region}&realm=${realmSlug}&name=${guildName}&fields=raid_encounters:${raidSlug}:${difficulty},raid_progression,raid_rankings}`;
   const url = `${GUILD_URL}/profile?${encodeURI(queryParams)}`;
 
-  let options: any = {
-    method: 'GET',
-    headers: headers,
-    ...getDevCacheOptions()
-  };
+  const cacheKey = `rio-prog-${guild.slug}-${raidSlug}-${difficulty}`;
 
-  const res = await fetch(url, options);
+  const { data, ok } = await devCache(cacheKey, () =>
+    rawFetchGuildProgression(url)
+  );
 
-  const data = await res.json();
-
-  if (res.ok) {
-    // TODO: maybe this can be used to track last update?
-    // console.log(guild.slug);
-    // const date = res.headers.get('Date');
-    // const lastModified = res.headers.get('Last-Modified');
-
-    // if (date) {
-    //   console.log(new Date(date).toLocaleString());
-    //   console.log(new Date(lastModified).toLocaleString());
-    // }
-
+  if (ok) {
     return data;
   } else {
     const errorMessage = `FAILED TO FETCH PROGRESSION FOR ${guild.name} ${raidSlug} ${difficulty}\nURL=${url}`;
     console.error(errorMessage, data);
     return Promise.reject(data);
   }
+}
+
+async function rawFetchRaidRankings(
+  url: string
+): Promise<{ data: RaiderIORaidDifficultyRankings; ok: boolean }> {
+  const headers = getHeaders();
+
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: headers
+  });
+
+  const data = (await res.json()) as RaiderIORaidDifficultyRankings;
+  return { data, ok: res.ok };
 }
 
 async function fetchRaidRankingsByDifficulty(
@@ -103,24 +115,18 @@ async function fetchRaidRankingsByDifficulty(
     console.error('Cannot fetch more than ten rankings at a time');
   }
 
-  const headers = getHeaders();
-
   const guildIdStrings = guildIds.toString();
 
   const queryParams = `access_key=${process.env.RAIDERIO_ACCESS_KEY}&region=${region}&raid=${raidSlug}&difficulty=${difficulty}&guilds=${guildIdStrings}&limit=200&page=0`;
   const url = `${RAIDING_URL}/raid-rankings?${encodeURI(queryParams)}`;
 
-  let options: any = {
-    method: 'GET',
-    headers: headers,
-    ...getDevCacheOptions()
-  };
+  const cacheKey = `rio-rank-${raidSlug}-${difficulty}-${guildIdStrings.slice(0, 30)}`;
 
-  const res = await fetch(url, options);
+  const { data, ok } = await devCache(cacheKey, () =>
+    rawFetchRaidRankings(url)
+  );
 
-  const data = (await res.json()) as RaiderIORaidDifficultyRankings;
-
-  if (res.ok) {
+  if (ok) {
     return data.raidRankings;
   } else {
     const errorMessage = `FAILED TO FETCH RAID RANKINGS FOR ${guildIdStrings} ${raidSlug} ${difficulty}\nURL=${url}`;
@@ -151,6 +157,87 @@ export async function fetchAllRaidRankingsByDifficulty(
 
     guildIdsToProcess = allIds.splice(0, 10);
   }
-  
+
   return allRankings;
+}
+
+/**
+ * Fetches static raid data for an expansion from Raider.io.
+ * Returns raids with encounter slugs, names, and season start/end dates.
+ */
+export async function fetchRaidingStaticData(
+  expansionId: number
+): Promise<RaiderIOStaticRaid[]> {
+  const cacheKey = `rio-static-${expansionId}`;
+
+  const { data, ok } = await devCache(cacheKey, async () => {
+    const headers = getHeaders();
+
+    const queryParams = `access_key=${process.env.RAIDERIO_ACCESS_KEY}&expansion_id=${expansionId}`;
+    const url = `${RAIDING_URL}/static-data?${encodeURI(queryParams)}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: headers
+    });
+
+    const data = await res.json();
+    return { data, ok: res.ok };
+  });
+
+  if (ok) {
+    return data.raids as RaiderIOStaticRaid[];
+  } else {
+    const errorMessage = `FAILED TO FETCH RAIDING STATIC DATA FOR EXPANSION ${expansionId}`;
+    console.error(errorMessage, data);
+    return Promise.reject(data);
+  }
+}
+
+const RIO_BASE_EXPANSION_ID = 10;
+
+/**
+ * Auto-detects the current Raider.io expansion ID by finding the highest
+ * expansion that has at least one raid with a start date in the past.
+ * Uses a quiet fetch that doesn't log errors for expected 400s.
+ */
+export async function fetchLatestRIOExpansionId(): Promise<number> {
+  let currentId = RIO_BASE_EXPANSION_ID;
+  let latestActiveId = RIO_BASE_EXPANSION_ID;
+  const now = new Date();
+
+  while (true) {
+    try {
+      const cacheKey = `rio-static-${currentId}`;
+
+      const { data, ok } = await devCache(cacheKey, async () => {
+        const headers = getHeaders();
+        const queryParams = `access_key=${process.env.RAIDERIO_ACCESS_KEY}&expansion_id=${currentId}`;
+        const url = `${RAIDING_URL}/static-data?${encodeURI(queryParams)}`;
+
+        const res = await fetch(url, { method: 'GET', headers });
+        const data = await res.json();
+        return { data, ok: res.ok };
+      });
+
+      if (!ok || !data.raids?.length) {
+        break; // No more expansions
+      }
+
+      // Check if any raid has started
+      const hasStartedRaid = data.raids.some(
+        (r: RaiderIOStaticRaid) => new Date(r.starts.us) <= now
+      );
+
+      if (hasStartedRaid) {
+        latestActiveId = currentId;
+      }
+
+      currentId++;
+    } catch {
+      break; // Fetch error, stop searching
+    }
+  }
+
+  return latestActiveId;
 }

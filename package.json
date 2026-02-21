@@ -11,8 +11,11 @@
   "contributors": [],
   "scripts": {
     "dev": "next dev",
+    "clear-cache": "node -e \"require('fs').rmSync('.next/cache/dev-api',{recursive:true,force:true})\" && echo Dev cache cleared",
     "build": "next build",
     "start": "next start",
+    "test": "vitest",
+    "test:run": "vitest run",
     "lint": "eslint src/",
     "format:staged": "prettier --write --tab-width 2 --single-quote --jsx-single-quote --trailing-comma none $(git diff --cached --name-only)"
   },
@@ -33,7 +36,9 @@
     "@types/react-dom": "19.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18"
   },
   "overrides": {
     "@types/react": "19.2.14",
