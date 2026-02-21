@@ -237,7 +237,8 @@ export class ReportBuilder {
         maxDifficultyDefeated,
         defeatedAt,
         maxDifficultyAttempted,
-        lowestBossPercentage: bestPullSummary?.bestPercent
+        lowestBossPercentage: bestPullSummary?.bestPercent,
+        attemptedAt: bestPullSummary?.pullStartedAt ?? null
       } as GuildRaidEncounter;
     });
 

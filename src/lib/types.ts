@@ -127,6 +127,7 @@ export type GuildRaidEncounter = {
   defeatedAt: string;
   maxDifficultyAttempted: RAID_DIFFICULTY | null;
   lowestBossPercentage: number | null;
+  attemptedAt: string | null;
 };
 
 type NoEncounter = {

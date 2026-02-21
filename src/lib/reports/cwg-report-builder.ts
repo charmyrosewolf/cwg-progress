@@ -393,6 +393,7 @@ export function buildCWGRaidEncounters(
       ...re,
       maxDifficultyAttempted,
       lowestBossPercentage,
+      attemptedAt: bestPull?.startTime?.toISOString() ?? null,
       wlogBestPullUrl: bestPull?.url
     };
   });

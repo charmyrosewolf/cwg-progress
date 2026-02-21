@@ -75,7 +75,7 @@ async function getWlogReportFightsByGuild(
   return fightMap;
 }
 
-function createEventsByGuild(
+export function createEventsByGuild(
   guild: GuildInfo,
   raid: RaidInfo,
   encounters: GuildRaidEncounter[]
@@ -99,8 +99,8 @@ function createEventsByGuild(
           raidName: raid.name,
           bossName: e.name,
           type: 'BEST',
-          lowestPercentage: 0,
-          dateOccurred: new Date(e.defeatedAt)
+          lowestPercentage: e.lowestBossPercentage || 0,
+          dateOccurred: e.attemptedAt ? new Date(e.attemptedAt) : new Date()
         };
       }
     });
