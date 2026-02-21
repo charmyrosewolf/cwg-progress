@@ -12,12 +12,12 @@ import { CWG } from '@/lib/data/guilds';
 import {
   flattenWLOGReportFights,
   getWlogFightMap,
+  shortenBossName,
   sortByBestPulls,
   sortFightMapByBestPulls
 } from '@/lib/utils/helper';
 import {
   BossDataQueryVars,
-  createStatistic,
   createStatistics,
   difficultiesMap,
   WLOGS_FIGHT_QUERY,
@@ -80,6 +80,39 @@ function getMaxDifficultyKill(
   };
 }
 
+type CWGKillCounts = {
+  normalKills: number;
+  heroicKills: number;
+  mythicKills: number;
+  /** Best pulls per encounter in M, H, N order — used for progression detection */
+  allBossesInOrder: (WlogFlattenedFight | undefined)[];
+};
+
+/**
+ * Counts kills per difficulty from WCL fight data.
+ * Also collects all best pulls in M → H → N order per encounter
+ * for downstream progression detection.
+ */
+function countCWGKillsByDifficulty(
+  raid: RaidInfo,
+  fights: WlogFlattenedFight[]
+): CWGKillCounts {
+  let normalKills = 0;
+  let heroicKills = 0;
+  let mythicKills = 0;
+  const allBossesInOrder: (WlogFlattenedFight | undefined)[] = [];
+
+  for (const { id } of raid.encounters) {
+    const { nBoss, hBoss, mBoss } = getPullsByDifficulty(fights, id);
+    if (nBoss?.kill) normalKills++;
+    if (hBoss?.kill) heroicKills++;
+    if (mBoss?.kill) mythicKills++;
+    allBossesInOrder.push(mBoss, hBoss, nBoss);
+  }
+
+  return { normalKills, heroicKills, mythicKills, allBossesInOrder };
+}
+
 /**
  * buildCWGProgressReport
  *
@@ -98,20 +131,8 @@ export async function buildCWGProgressReport(
 
   flattenedEncounters.sort(sortByBestPulls);
 
-  // Count kills per difficulty
-  let normalKills = 0;
-  let heroicKills = 0;
-  let mythicKills = 0;
-
-  for (const { id } of raid.encounters) {
-    const { nBoss, hBoss, mBoss } = getPullsByDifficulty(
-      flattenedEncounters,
-      id
-    );
-    if (nBoss?.kill) normalKills++;
-    if (hBoss?.kill) heroicKills++;
-    if (mBoss?.kill) mythicKills++;
-  }
+  const { normalKills, heroicKills, mythicKills } =
+    countCWGKillsByDifficulty(raid, flattenedEncounters);
 
   // Build encounters with kill + best pull data
   const fightMap: FightMap = getWlogFightMap(flattenedEncounters);
@@ -122,17 +143,16 @@ export async function buildCWGProgressReport(
     bestPullMap
   );
 
-  // Determine overall summary from highest difficulty with kills
   const totalBosses = raid.encounters.length;
-  let overallSummary: Statistic;
-
-  if (mythicKills) {
-    overallSummary = createStatistic('mythic', totalBosses, mythicKills);
-  } else if (heroicKills) {
-    overallSummary = createStatistic('heroic', totalBosses, heroicKills);
-  } else {
-    overallSummary = createStatistic('normal', totalBosses, normalKills);
-  }
+  const summaries = createStatistics(
+    totalBosses,
+    normalKills,
+    heroicKills,
+    mythicKills
+  );
+  const overallSummary = summaries.findLast(
+    (s) => s.bossesKilled
+  ) as Statistic;
 
   return { guild: CWG, raidEncounters, overallSummary };
 }
@@ -196,19 +216,8 @@ export function buildCWGProgressStatistics(
 
   fights.sort(sortByBestPulls);
 
-  let normalKills = 0;
-  let heroicKills = 0;
-  let mythicKills = 0;
-
-  const allBossesInOrder: (WlogFlattenedFight | undefined)[] = [];
-
-  for (const { id } of raid.encounters) {
-    const { nBoss, hBoss, mBoss } = getPullsByDifficulty(fights, id);
-    if (nBoss?.kill) normalKills++;
-    if (hBoss?.kill) heroicKills++;
-    if (mBoss?.kill) mythicKills++;
-    allBossesInOrder.push(mBoss, hBoss, nBoss);
-  }
+  const { normalKills, heroicKills, mythicKills, allBossesInOrder } =
+    countCWGKillsByDifficulty(raid, fights);
 
   const hasAnyKills = normalKills || heroicKills || mythicKills;
 
@@ -243,16 +252,7 @@ export function buildCWGProgressStatistics(
       (e) => e.id === currentProgressionBoss?.encounterID
     );
 
-    const splitName = boss?.name.replace(',', '').split(' ');
-
-    let shortName = '';
-
-    if (splitName && splitName.length) {
-      // TODO: automate this?
-      shortName = ['Awakened', 'The'].includes(splitName[0])
-        ? splitName[1]
-        : splitName[0];
-    }
+    const shortName = boss ? shortenBossName(boss.name) : '';
 
     const diff =
       wlogsDifficultiesMap[

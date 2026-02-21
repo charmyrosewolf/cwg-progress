@@ -18,6 +18,7 @@ import {
   WlogFlattenedFight,
   RAID_DIFFICULTY_SHORT_CODES
 } from '@/lib/types';
+import { shortenBossName } from '@/lib/utils/helper';
 
 /** TODO: refactoring */
 export class ReportBuilder {
@@ -291,12 +292,7 @@ export class ReportBuilder {
 
     const boss = this.raid.encounters[bossIndex];
 
-    const splitName = boss.name.replace(',', '').split(' ');
-
-    // TODO: automate this?
-    const shortName = ['Awakened', 'The'].includes(splitName[0])
-      ? splitName[1]
-      : splitName[0];
+    const shortName = shortenBossName(boss.name);
 
     return `${progressionInfo.difficulty} ${shortName}=${progressionInfo.bestPercent}%`;
   }

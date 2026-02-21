@@ -1,5 +1,6 @@
 import {
   flattenWLOGReportFights,
+  shortenBossName,
   sortByBestPulls,
   getWlogFightMap,
   sortFightMapByBestPulls
@@ -279,5 +280,29 @@ describe('sortFightMapByBestPulls', () => {
     expect((bestPullMap.get(2921) as WlogFlattenedFight).bossPercentage).toBe(
       15
     );
+  });
+});
+
+// ─── shortenBossName ───────────────────────────────────────
+
+describe('shortenBossName', () => {
+  it('strips "The" prefix and returns second word', () => {
+    expect(shortenBossName('The Silken Court')).toBe('Silken');
+  });
+
+  it('strips "Awakened" prefix and returns second word', () => {
+    expect(shortenBossName('Awakened Patchwerk')).toBe('Patchwerk');
+  });
+
+  it('removes commas before splitting', () => {
+    expect(shortenBossName('Sikran, Captain of the Sureki')).toBe('Sikran');
+  });
+
+  it('returns first word for regular names', () => {
+    expect(shortenBossName('Queen Ansurek')).toBe('Queen');
+  });
+
+  it('returns the full name for single-word names', () => {
+    expect(shortenBossName('Sikran')).toBe('Sikran');
   });
 });

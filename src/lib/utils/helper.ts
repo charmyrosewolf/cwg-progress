@@ -69,6 +69,24 @@ export function getWlogFightMap(flattenedEncounters: WlogFlattenedFight[]) {
   return fightMap;
 }
 
+/**
+ * Shortens a boss name for display in progression strings.
+ * Strips "The" / "Awakened" prefixes and removes commas.
+ *
+ * e.g. "The Silken Court" → "Silken"
+ *      "Awakened Patchwerk" → "Patchwerk"
+ *      "Sikran, Captain of the Sureki" → "Sikran"
+ */
+export function shortenBossName(name: string): string {
+  const splitName = name.replace(',', '').split(' ');
+
+  if (!splitName.length) return name;
+
+  return ['Awakened', 'The'].includes(splitName[0])
+    ? splitName[1]
+    : splitName[0];
+}
+
 export function sortFightMapByBestPulls(fightMap: FightMap): FightMap {
   const bestPullFightMap: FightMap = new Map();
 
