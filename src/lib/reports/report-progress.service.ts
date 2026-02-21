@@ -1,6 +1,7 @@
 import {
   GuildInfo,
   GuildRaidEncounter,
+  GuildRaidEncountersInfo,
   GuildRaidProgress,
   RaidInfo,
   ProgressReport,
@@ -163,6 +164,92 @@ export async function getReportBuilder(
   return builder;
 }
 
+// ─── Shared helpers for report generation ───────────────────
+
+function countKillsByDifficulty(progressionForGuild: GuildRaidEncountersInfo): {
+  normalKills: number;
+  heroicKills: number;
+  mythicKills: number;
+} {
+  const normalKills =
+    progressionForGuild.normal.reduce(
+      (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
+      0
+    ) || 0;
+
+  const heroicKills =
+    progressionForGuild.heroic.reduce(
+      (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
+      0
+    ) || 0;
+
+  const mythicKills =
+    progressionForGuild.mythic.reduce(
+      (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
+      0
+    ) || 0;
+
+  return { normalKills, heroicKills, mythicKills };
+}
+
+type ProcessedGuildData = {
+  guild: GuildInfo;
+  overallSummary: Statistic;
+  totalBosses: number;
+  summaries: Statistic[];
+  bestPulls: GuildRaidEncounter[];
+  currentProgression: string;
+  events: RaidProgressEvent[];
+};
+
+function processRegularGuild(
+  raid: RaidInfo,
+  builder: ReportBuilder,
+  guild: GuildInfo
+): ProcessedGuildData | null {
+  const progressionForGuild = builder.getEncounterInfoByGuild(guild.rId);
+  if (!progressionForGuild) return null;
+
+  const { normalKills, heroicKills, mythicKills } =
+    countKillsByDifficulty(progressionForGuild);
+
+  if (!normalKills && !heroicKills && !mythicKills) return null;
+
+  const totalBosses = raid.encounters.length;
+
+  const summaries = createStatistics(
+    totalBosses,
+    normalKills,
+    heroicKills,
+    mythicKills
+  );
+
+  const overallSummary = summaries.findLast(
+    (s) => s.bossesKilled
+  ) as Statistic;
+
+  guild.profileUrl = progressionForGuild.profileUrl;
+
+  const currentProgression =
+    builder.toStringCurrentProgressionBossByRId(guild.rId) ?? '';
+
+  const bestPulls = progressionForGuild.bestPulls;
+
+  const events = bestPulls
+    ? createEventsByGuild(guild, raid, bestPulls)
+    : [];
+
+  return {
+    guild,
+    overallSummary,
+    totalBosses,
+    summaries,
+    bestPulls,
+    currentProgression,
+    events
+  };
+}
+
 export async function generateProgressReport(
   raid: RaidInfo
 ): Promise<ProgressReport | null> {
@@ -202,72 +289,16 @@ export async function generateProgressReport(
       continue;
     }
 
-    const progressionForGuild = builder.getEncounterInfoByGuild(g.rId);
+    const processed = processRegularGuild(raid, builder, g);
+    if (!processed) continue;
 
-    // if not in list. guild has no progress yet, skip them
-    if (!progressionForGuild) continue;
+    raidProgression.push({
+      guild: processed.guild,
+      raidEncounters: processed.bestPulls as GuildRaidEncounter[],
+      overallSummary: processed.overallSummary
+    });
 
-    const normalKills =
-      progressionForGuild?.normal.reduce(
-        (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-        0
-      ) || 0;
-
-    const heroicKills =
-      progressionForGuild?.heroic.reduce(
-        (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-        0
-      ) || 0;
-
-    const mythicKills =
-      progressionForGuild?.mythic.reduce(
-        (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-        0
-      ) || 0;
-
-    const hasKills = Boolean(normalKills + heroicKills + mythicKills);
-
-    // guild has progress, but no kills yet, skip them
-    if (!hasKills) {
-      continue;
-    }
-
-    const totalBosses = raid.encounters.length;
-
-    const summaries = createStatistics(
-      totalBosses,
-      normalKills,
-      heroicKills,
-      mythicKills
-    );
-
-    const overallSummary: Statistic = summaries.findLast(
-      (s) => s.bossesKilled
-    ) as Statistic;
-
-    g.profileUrl = progressionForGuild?.profileUrl;
-
-    const guildProgress: GuildRaidProgress = {
-      guild: g,
-      raidEncounters: progressionForGuild?.bestPulls as GuildRaidEncounter[],
-      overallSummary
-    };
-
-    raidProgression.push(guildProgress);
-
-    // get recent events
-
-    // TODO: This isn't actually needed by the /raids pages
-    // but is needed for getLatestEvents. Try refactoring it out.
-    if (progressionForGuild && progressionForGuild.bestPulls) {
-      const events: RaidProgressEvent[] = createEventsByGuild(
-        g,
-        raid,
-        progressionForGuild.bestPulls
-      );
-
-      allEvents.push(...events);
-    }
+    allEvents.push(...processed.events);
   }
 
   allEvents.sort((a, b) => (a.dateOccurred < b.dateOccurred ? 1 : -1));
@@ -332,77 +363,18 @@ export async function generateSummaryReport(
       continue;
     }
 
-    const progressionForGuild = builder.getEncounterInfoByGuild(g.rId);
+    const processed = processRegularGuild(raid, builder, g);
+    if (!processed) continue;
 
-    // if not in list. guild is not raiding, skip them
-    if (!progressionForGuild) continue;
+    allSummaries.push({
+      guild: processed.guild,
+      overallSummary: processed.overallSummary,
+      totalBosses: processed.totalBosses,
+      summaries: processed.summaries,
+      currentProgression: processed.currentProgression
+    } as GuildRaidProgressStatistics);
 
-    // get # kills for guild, if any
-    const normalKills =
-      progressionForGuild?.normal.reduce(
-        (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-        0
-      ) || 0;
-
-    const heroicKills =
-      progressionForGuild?.heroic.reduce(
-        (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-        0
-      ) || 0;
-
-    const mythicKills =
-      progressionForGuild?.mythic.reduce(
-        (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-        0
-      ) || 0;
-
-    const hasKills = Boolean(normalKills + heroicKills + mythicKills);
-
-    // guild has progress, but no kills yet, skip them
-    if (!hasKills) {
-      continue;
-    }
-
-    const totalBosses = raid.encounters.length;
-
-    const summaries = createStatistics(
-      totalBosses,
-      normalKills,
-      heroicKills,
-      mythicKills
-    );
-
-    const overallSummary: Statistic = summaries.findLast(
-      (s) => s.bossesKilled
-    ) as Statistic;
-
-    g.profileUrl = progressionForGuild?.profileUrl;
-
-    const currentProgression = builder.toStringCurrentProgressionBossByRId(
-      g.rId
-    );
-
-    const summary = {
-      guild: g,
-      overallSummary,
-      totalBosses,
-      summaries,
-      currentProgression
-    } as GuildRaidProgressStatistics;
-
-    allSummaries.push(summary);
-
-    // TODO: events only include the "best" currently. Would like to factor
-    // in previous wlog pulls so that we have that history to view
-    if (progressionForGuild && progressionForGuild.bestPulls) {
-      const events: RaidProgressEvent[] = createEventsByGuild(
-        g,
-        raid,
-        progressionForGuild.bestPulls
-      );
-
-      allEvents.push(...events);
-    }
+    allEvents.push(...processed.events);
   }
 
   const report: SummaryReport = {
@@ -412,6 +384,5 @@ export async function generateSummaryReport(
     createdOn: new Date()
   };
 
-  // return Object.fromEntries(raidRankingsByGuild);
   return report;
 }
