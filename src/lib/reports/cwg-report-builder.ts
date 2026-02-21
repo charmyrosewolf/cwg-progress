@@ -25,11 +25,60 @@ import {
   GuildRaidEncounter,
   GuildRaidProgress,
   GuildRaidProgressStatistics,
+  RAID_DIFFICULTY,
   RaidInfo,
   REPORT_LIMIT,
   Statistic,
   WlogFlattenedFight
 } from '@/lib/types';
+
+// ─── Shared helpers ─────────────────────────────────────────
+
+type EncounterPulls = {
+  nBoss: WlogFlattenedFight | undefined;
+  hBoss: WlogFlattenedFight | undefined;
+  mBoss: WlogFlattenedFight | undefined;
+  allPulls: WlogFlattenedFight[];
+};
+
+/**
+ * Given a sorted list of fights, extracts the best pull per difficulty
+ * for a single encounter. Fights must already be sorted by sortByBestPulls
+ * so .find() returns the best pull for each difficulty.
+ */
+function getPullsByDifficulty(
+  fights: WlogFlattenedFight[],
+  encounterID: number
+): EncounterPulls {
+  const allPulls = fights.filter((f) => f.encounterID === encounterID);
+  return {
+    nBoss: allPulls.find((f) => f.difficulty === WLOGS_NORMAL_DIFFICULTY_ID),
+    hBoss: allPulls.find((f) => f.difficulty === WLOGS_HEROIC_DIFFICULTY_ID),
+    mBoss: allPulls.find((f) => f.difficulty === WLOGS_MYTHIC_DIFFICULTY_ID),
+    allPulls
+  };
+}
+
+/**
+ * Finds the highest-difficulty kill among normal/heroic/mythic boss pulls.
+ * Returns null if no kills exist.
+ */
+function getMaxDifficultyKill(
+  { nBoss, hBoss, mBoss }: Pick<EncounterPulls, 'nBoss' | 'hBoss' | 'mBoss'>
+): {
+  killedBoss: WlogFlattenedFight;
+  maxDifficultyDefeated: RAID_DIFFICULTY;
+} | null {
+  const killedBoss = [mBoss, hBoss, nBoss].find((b) => b?.kill);
+  if (!killedBoss) return null;
+  return {
+    killedBoss,
+    maxDifficultyDefeated:
+      wlogsDifficultiesMap[
+        killedBoss.difficulty.toString() as WLOGS_RAID_DIFFICULTY
+      ]
+  };
+}
 
 /**
  * buildCWGProgressReport
@@ -45,98 +94,47 @@ export async function buildCWGProgressReport(
 ): Promise<GuildRaidProgress | null> {
   const flattenedEncounters = await getCWGWlogReportFights(raid);
 
-  if (!flattenedEncounters || !flattenedEncounters.length) return null;
+  if (!flattenedEncounters?.length) return null;
 
   flattenedEncounters.sort(sortByBestPulls);
 
-  let normalBossesKilled = 0;
-  let heroicBossesKilled = 0;
-  let mythicBossesKilled = 0;
+  // Count kills per difficulty
+  let normalKills = 0;
+  let heroicKills = 0;
+  let mythicKills = 0;
 
-  const raidEncounters = raid.encounters.map(({ id, rSlug, name }) => {
-    const allRaidBossPulls = flattenedEncounters.filter(
-      ({ encounterID }) => id === encounterID
+  for (const { id } of raid.encounters) {
+    const { nBoss, hBoss, mBoss } = getPullsByDifficulty(
+      flattenedEncounters,
+      id
     );
+    if (nBoss?.kill) normalKills++;
+    if (hBoss?.kill) heroicKills++;
+    if (mBoss?.kill) mythicKills++;
+  }
 
-    // get first best pull for each difficulty
-
-    const nBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_NORMAL_DIFFICULTY_ID
-    )[0];
-
-    const hBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_HEROIC_DIFFICULTY_ID
-    )[0];
-
-    const mBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_MYTHIC_DIFFICULTY_ID
-    )[0];
-
-    // update stats
-
-    if (nBoss?.kill) {
-      normalBossesKilled++;
-    }
-
-    if (hBoss?.kill) {
-      heroicBossesKilled++;
-    }
-
-    if (mBoss?.kill) {
-      mythicBossesKilled++;
-    }
-
-    // Get best difficulty defeated
-    const difficulties = [mBoss, hBoss, nBoss];
-
-    const maxDifficultyBossKilled = difficulties.find((boss) => boss?.kill);
-
-    const maxDifficultyDefeated = maxDifficultyBossKilled
-      ? wlogsDifficultiesMap[
-          maxDifficultyBossKilled?.difficulty.toString() as WLOGS_RAID_DIFFICULTY
-        ]
-      : null;
-
-    const timeDefeated = maxDifficultyBossKilled
-      ? maxDifficultyBossKilled.endTime
-      : null;
-
-    return {
-      encounterID: id,
-      slug: rSlug,
-      name: name,
-      maxDifficultyDefeated,
-      defeatedAt: timeDefeated?.toISOString()
-    } as GuildRaidEncounter;
-  });
-
+  // Build encounters with kill + best pull data
   const fightMap: FightMap = getWlogFightMap(flattenedEncounters);
   const bestPullMap: FightMap | null = sortFightMapByBestPulls(fightMap);
-
-  const updatedEncounters = buildCWGRaidEncounters(
+  const raidEncounters = buildCWGRaidEncounters(
     raid,
     flattenedEncounters,
     bestPullMap
   );
 
+  // Determine overall summary from highest difficulty with kills
+  const totalBosses = raid.encounters.length;
   let overallSummary: Statistic;
-  const totalBosses = raidEncounters.length;
 
-  if (mythicBossesKilled) {
-    overallSummary = createStatistic('mythic', totalBosses, mythicBossesKilled);
-  } else if (heroicBossesKilled) {
-    overallSummary = createStatistic('heroic', totalBosses, heroicBossesKilled);
+  if (mythicKills) {
+    overallSummary = createStatistic('mythic', totalBosses, mythicKills);
+  } else if (heroicKills) {
+    overallSummary = createStatistic('heroic', totalBosses, heroicKills);
   } else {
-    overallSummary = createStatistic('normal', totalBosses, normalBossesKilled);
+    overallSummary = createStatistic('normal', totalBosses, normalKills);
   }
 
-  const guildProgress: GuildRaidProgress = {
-    guild: CWG,
-    raidEncounters: updatedEncounters,
-    overallSummary
-  };
-
-  return guildProgress;
+  return { guild: CWG, raidEncounters, overallSummary };
 }
 
 /** New Stuff */
@@ -198,50 +196,21 @@ export function buildCWGProgressStatistics(
 
   fights.sort(sortByBestPulls);
 
-  let normalBossesKilled = 0;
-  let heroicBossesKilled = 0;
-  let mythicBossesKilled = 0;
+  let normalKills = 0;
+  let heroicKills = 0;
+  let mythicKills = 0;
 
-  const allBossesInOrder: WlogFlattenedFight[] = [];
+  const allBossesInOrder: (WlogFlattenedFight | undefined)[] = [];
 
-  raid.encounters.forEach(({ id, rSlug, name }) => {
-    const allRaidBossPulls = fights.filter(
-      ({ encounterID }) => id === encounterID
-    );
+  for (const { id } of raid.encounters) {
+    const { nBoss, hBoss, mBoss } = getPullsByDifficulty(fights, id);
+    if (nBoss?.kill) normalKills++;
+    if (hBoss?.kill) heroicKills++;
+    if (mBoss?.kill) mythicKills++;
+    allBossesInOrder.push(mBoss, hBoss, nBoss);
+  }
 
-    // get first best pull for each difficulty
-
-    const nBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_NORMAL_DIFFICULTY_ID
-    )[0];
-
-    const hBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_HEROIC_DIFFICULTY_ID
-    )[0];
-
-    const mBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_MYTHIC_DIFFICULTY_ID
-    )[0];
-
-    // update stats
-
-    if (nBoss?.kill) {
-      normalBossesKilled++;
-    }
-
-    if (hBoss?.kill) {
-      heroicBossesKilled++;
-    }
-
-    if (mBoss?.kill) {
-      mythicBossesKilled++;
-    }
-
-    allBossesInOrder.push(...[mBoss, hBoss, nBoss]);
-  });
-
-  const hasAnyKills =
-    normalBossesKilled || heroicBossesKilled || mythicBossesKilled;
+  const hasAnyKills = normalKills || heroicKills || mythicKills;
 
   // don't continue if CWG doesn't have any kills
   if (!hasAnyKills) {
@@ -252,18 +221,20 @@ export function buildCWGProgressStatistics(
 
   const summaries = createStatistics(
     totalBosses,
-    normalBossesKilled,
-    heroicBossesKilled,
-    mythicBossesKilled
+    normalKills,
+    heroicKills,
+    mythicKills
   );
 
   let overallSummary: Statistic = summaries.findLast(
     (s) => s.bossesKilled
   ) as Statistic;
 
-  const unkilledBosses = allBossesInOrder.filter((b) => b && !b.kill);
+  const unkilledBosses = allBossesInOrder.filter(
+    (b): b is WlogFlattenedFight => !!b && !b.kill
+  );
   const currentProgressionBoss: WlogFlattenedFight | null =
-    unkilledBosses && unkilledBosses.length ? unkilledBosses[0] : null;
+    unkilledBosses.length ? unkilledBosses[0] : null;
 
   let currentProgression = '';
 
@@ -307,46 +278,16 @@ function buildEncountersWithKills(
   encounters.sort(sortByBestPulls);
 
   return raid.encounters.map(({ id, rSlug, name }) => {
-    const allRaidBossPulls = encounters.filter(
-      ({ encounterID }) => id === encounterID
-    );
-
-    // get first best pull for each difficulty
-
-    const nBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_NORMAL_DIFFICULTY_ID
-    )[0];
-
-    const hBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_HEROIC_DIFFICULTY_ID
-    )[0];
-
-    const mBoss = allRaidBossPulls.filter(
-      ({ difficulty }) => difficulty === WLOGS_MYTHIC_DIFFICULTY_ID
-    )[0];
-
-    // Get best difficulty defeated
-    const difficulties = [mBoss, hBoss, nBoss];
-
-    const maxDifficultyBossKilled = difficulties.find((boss) => boss?.kill);
-
-    const maxDifficultyDefeated = maxDifficultyBossKilled
-      ? wlogsDifficultiesMap[
-          maxDifficultyBossKilled?.difficulty.toString() as WLOGS_RAID_DIFFICULTY
-        ]
-      : null;
-
-    const timeDefeated = maxDifficultyBossKilled
-      ? maxDifficultyBossKilled.endTime
-      : null;
+    const pulls = getPullsByDifficulty(encounters, id);
+    const killInfo = getMaxDifficultyKill(pulls);
 
     return {
       encounterID: id,
       slug: rSlug,
-      name: name,
-      maxDifficultyDefeated,
-      defeatedAt: timeDefeated?.toISOString(),
-      wlogKillUrl: maxDifficultyBossKilled?.url
+      name,
+      maxDifficultyDefeated: killInfo?.maxDifficultyDefeated ?? null,
+      defeatedAt: killInfo?.killedBoss.endTime?.toISOString() ?? '',
+      wlogKillUrl: killInfo?.killedBoss.url
     } as GuildRaidEncounter;
   });
 }
