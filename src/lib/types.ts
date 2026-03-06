@@ -63,6 +63,15 @@ export type WCLExpansionZone = {
   encounters: WCLZoneEncounter[];
 };
 
+/** Next Raid Banner type */
+export type NextRaidInfo = {
+  name: string;
+  shortName: string;
+  slug: string;
+  startDateUS: string;
+  daysUntilLaunch: number;
+};
+
 /** RAID types */
 export type RaidInfo = {
   name: string;

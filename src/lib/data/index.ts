@@ -1,6 +1,6 @@
 import * as GUILD_DATA from './guilds';
 import { fetchSeasonData, SeasonData } from './raid-data.service';
-import { RaidInfo } from '@/lib/types';
+import { NextRaidInfo, RaidInfo } from '@/lib/types';
 
 export const GUILDS = GUILD_DATA.GUILDS;
 export const isCWG = GUILD_DATA.isCWG;
@@ -28,4 +28,9 @@ export async function getSeasonStartDate(): Promise<string> {
 export async function getSeasonEndDate(): Promise<string | number> {
   const data = await getSeasonData();
   return data.seasonEndDate;
+}
+
+export async function getNextRaid(): Promise<NextRaidInfo | null> {
+  const data = await getSeasonData();
+  return data.nextRaid;
 }

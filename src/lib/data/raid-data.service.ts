@@ -15,6 +15,7 @@ import {
 import { fetchWCLExpansionZones } from '@/lib/api/wlogs.api';
 import {
   Encounter,
+  NextRaidInfo,
   RaidInfo,
   RaiderIOStaticRaid,
   WCLExpansionZone,
@@ -32,7 +33,10 @@ export type SeasonData = {
   raids: RaidInfo[];
   seasonStartDate: string;
   seasonEndDate: string | 0;
+  nextRaid: NextRaidInfo | null;
 };
+
+const NEXT_RAID_THRESHOLD_DAYS = 14;
 
 /**
  * Normalize a name for fuzzy matching.
@@ -152,6 +156,62 @@ function buildRaidInfo(
 }
 
 /**
+ * Searches for the next upcoming raid across the current and next expansion.
+ * Returns NextRaidInfo if a raid starts within NEXT_RAID_THRESHOLD_DAYS, else null.
+ */
+async function findNextRaid(
+  currentExpansionRaids: RaiderIOStaticRaid[],
+  rioExpansionId: number
+): Promise<NextRaidInfo | null> {
+  const now = new Date();
+  const thresholdMs = NEXT_RAID_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+
+  // Collect future raids from the current expansion
+  let candidateRaids: RaiderIOStaticRaid[] = currentExpansionRaids.filter(
+    (raid) => new Date(raid.starts.us) > now
+  );
+
+  // Also check the next expansion for upcoming raids
+  try {
+    const nextExpansionRaids = await fetchRaidingStaticData(
+      rioExpansionId + 1
+    );
+    if (nextExpansionRaids?.length) {
+      const futureFromNext = nextExpansionRaids.filter(
+        (raid) => new Date(raid.starts.us) > now
+      );
+      candidateRaids = [...candidateRaids, ...futureFromNext];
+    }
+  } catch {
+    // Next expansion doesn't exist yet — that's fine
+  }
+
+  if (!candidateRaids.length) return null;
+
+  // Find the soonest upcoming raid
+  candidateRaids.sort(
+    (a, b) =>
+      new Date(a.starts.us).getTime() - new Date(b.starts.us).getTime()
+  );
+
+  const soonest = candidateRaids[0];
+  const startDate = new Date(soonest.starts.us);
+  const diffMs = startDate.getTime() - now.getTime();
+
+  if (diffMs > thresholdMs || diffMs <= 0) return null;
+
+  console.log('soonest', soonest)
+
+  return {
+    name: soonest.name,
+    shortName: soonest.short_name,
+    slug: soonest.slug,
+    startDateUS: soonest.starts.us,
+    daysUntilLaunch: Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  };
+}
+
+/**
  * Fetches and cross-references raid data from both APIs.
  * Auto-detects the current expansion from both APIs.
  * Returns current season's raids with full encounter metadata.
@@ -220,9 +280,13 @@ export async function fetchSeasonData(): Promise<SeasonData> {
   const seasonStartDate = firstRaid?.starts?.us || '';
   const seasonEndDate = firstRaid?.ends?.us || 0;
 
+  // Check for an upcoming raid within the threshold window
+  const nextRaid = await findNextRaid(rioRaids, rioExpansionId);
+
   return {
     raids,
     seasonStartDate,
-    seasonEndDate
+    seasonEndDate,
+    nextRaid
   };
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Box } from '@chakra-ui/react';
 
 import { REVALIDATION_TIME } from '@/lib/types';
@@ -9,6 +10,7 @@ import { fonts } from './fonts';
 import './globals.css';
 import Header from './components/header';
 import Footer from './components/footer';
+import NextRaidBanner from './components/next-raid-banner';
 
 const title = 'CWG Progress';
 const description =
@@ -59,6 +61,9 @@ export default function RootLayout({ children }: LayoutProps) {
         }}
       >
         <Providers>
+          <Suspense fallback={null}>
+            <NextRaidBanner />
+          </Suspense>
           {/* header */}
           <Header />
           {/* main */}

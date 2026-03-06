@@ -452,3 +452,120 @@ describe('fetchSeasonData - no current raids fallback', () => {
     expect(result.raids[0].slug).toBe('newer-raid');
   });
 });
+
+// ─── Next Raid Detection ─────────────────────────────────
+
+describe('fetchSeasonData - next raid detection', () => {
+  it('includes nextRaid when a future raid starts within 14 days in current expansion', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-05-20T12:00:00.000Z'));
+
+    const currentRaid = createRIORaid(); // started 2024-09-10, ongoing
+    const upcomingRaid = createRIORaidTier2({
+      name: 'Upcoming Raid',
+      short_name: 'UR',
+      slug: 'upcoming-raid',
+      starts: {
+        us: '2025-05-28T15:00:00.000Z',
+        eu: '2025-05-29T15:00:00.000Z'
+      }
+    });
+
+    mockRIOExpansionId.mockResolvedValue(10);
+    mockRIOStaticData
+      .mockResolvedValueOnce([currentRaid, upcomingRaid]) // expansion 10
+      .mockRejectedValueOnce(new Error('No expansion 11')); // expansion 11
+    mockWCLZones.mockResolvedValue([createWCLZone()]);
+
+    const result = await fetchSeasonData();
+
+    expect(result.nextRaid).not.toBeNull();
+    expect(result.nextRaid?.name).toBe('Upcoming Raid');
+    expect(result.nextRaid?.shortName).toBe('UR');
+    // 8 days + 3 hours → Math.ceil rounds up to 9
+    expect(result.nextRaid?.daysUntilLaunch).toBe(9);
+  });
+
+  it('finds next raid from the next expansion', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-05T12:00:00.000Z'));
+
+    // Current expansion: all raids ended
+    const endedRaid = createRIORaid({
+      ends: {
+        us: '2026-03-02T00:00:00.000Z',
+        eu: '2026-03-02T00:00:00.000Z'
+      }
+    });
+
+    mockRIOExpansionId.mockResolvedValue(10);
+    mockRIOStaticData
+      .mockResolvedValueOnce([endedRaid]) // expansion 10
+      .mockResolvedValueOnce([
+        // expansion 11: next raid
+        createRIORaidTier2({
+          name: 'MN Tier 1',
+          short_name: 'MN1',
+          slug: 'mn-tier-1',
+          starts: {
+            us: '2026-03-17T15:00:00.000Z',
+            eu: '2026-03-18T15:00:00.000Z'
+          }
+        })
+      ]);
+    mockWCLZones.mockResolvedValue([]);
+
+    const result = await fetchSeasonData();
+
+    expect(result.nextRaid).not.toBeNull();
+    expect(result.nextRaid?.name).toBe('MN Tier 1');
+    // 12 days + 3 hours → Math.ceil rounds up to 13
+    expect(result.nextRaid?.daysUntilLaunch).toBe(13);
+  });
+
+  it('returns null nextRaid when no raid starts within 14 days', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-15T12:00:00.000Z'));
+
+    const currentRaid = createRIORaid(); // started 2024-09-10, ongoing
+    const futureRaid = createRIORaidTier2({
+      starts: {
+        us: '2025-06-01T15:00:00.000Z',
+        eu: '2025-06-02T15:00:00.000Z'
+      }
+    });
+
+    mockRIOExpansionId.mockResolvedValue(10);
+    mockRIOStaticData
+      .mockResolvedValueOnce([currentRaid, futureRaid])
+      .mockRejectedValueOnce(new Error('No expansion 11'));
+    mockWCLZones.mockResolvedValue([createWCLZone()]);
+
+    const result = await fetchSeasonData();
+
+    expect(result.nextRaid).toBeNull();
+  });
+
+  it('returns null nextRaid gracefully when next expansion fetch fails', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-05T12:00:00.000Z'));
+
+    const endedRaid = createRIORaid({
+      ends: {
+        us: '2026-03-02T00:00:00.000Z',
+        eu: '2026-03-02T00:00:00.000Z'
+      }
+    });
+
+    mockRIOExpansionId.mockResolvedValue(10);
+    mockRIOStaticData
+      .mockResolvedValueOnce([endedRaid]) // expansion 10
+      .mockRejectedValueOnce(new Error('No expansion 11')); // expansion 11 fails
+    mockWCLZones.mockResolvedValue([]);
+
+    const result = await fetchSeasonData();
+
+    // No future raids in current expansion, next expansion failed
+    expect(result.nextRaid).toBeNull();
+  });
+});

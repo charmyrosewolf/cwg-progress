@@ -6,7 +6,7 @@ export default function Footer() {
   return (
     <Flex as='header' direction='column' align='center' w='100vw' p='1em'>
       <Stack>
-        <Text>
+        <Text fontSize='sm'>
           © 2024 CWG Progress Tracker. Made with &hearts; and&nbsp;
           <Link variant='underline' target='_blank' asChild>
             <NextLink href='https://raider.io'>Raider.io</NextLink>
@@ -17,7 +17,6 @@ export default function Footer() {
               Warcraft Logs
             </NextLink>
           </Link>
-          &nbsp;by Charmy Rosewolf
         </Text>
       </Stack>
     </Flex>
