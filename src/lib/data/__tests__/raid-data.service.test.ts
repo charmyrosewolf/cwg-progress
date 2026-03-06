@@ -4,10 +4,7 @@ import {
   fetchRaidingStaticData,
   fetchLatestRIOExpansionId
 } from '@/lib/api/raiderio.api';
-import {
-  fetchWCLExpansionZones,
-  fetchLatestWCLExpansionId
-} from '@/lib/api/wlogs.api';
+import { fetchWCLExpansionZones } from '@/lib/api/wlogs.api';
 import {
   createRIORaid,
   createRIORaidTier2,
@@ -22,14 +19,12 @@ vi.mock('@/lib/api/raiderio.api', () => ({
 }));
 
 vi.mock('@/lib/api/wlogs.api', () => ({
-  fetchWCLExpansionZones: vi.fn(),
-  fetchLatestWCLExpansionId: vi.fn()
+  fetchWCLExpansionZones: vi.fn()
 }));
 
 const mockRIOStaticData = fetchRaidingStaticData as Mock;
 const mockRIOExpansionId = fetchLatestRIOExpansionId as Mock;
 const mockWCLZones = fetchWCLExpansionZones as Mock;
-const mockWCLExpansionId = fetchLatestWCLExpansionId as Mock;
 
 // Suppress console.warn/log noise during tests
 beforeEach(() => {
@@ -53,7 +48,7 @@ describe('fetchSeasonData - happy path', () => {
 
   it('returns raids with cross-referenced encounter IDs when both APIs succeed', async () => {
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([createRIORaid()]);
     mockWCLZones.mockResolvedValue([createWCLZone()]);
 
@@ -72,7 +67,7 @@ describe('fetchSeasonData - happy path', () => {
 
   it('sets seasonStartDate from the first raid and seasonEndDate to 0 for ongoing raids', async () => {
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([createRIORaid()]);
     mockWCLZones.mockResolvedValue([createWCLZone()]);
 
@@ -85,14 +80,15 @@ describe('fetchSeasonData - happy path', () => {
 
   it('calls APIs with the correct expansion IDs', async () => {
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([createRIORaid()]);
     mockWCLZones.mockResolvedValue([createWCLZone()]);
 
     await fetchSeasonData();
 
     expect(mockRIOStaticData).toHaveBeenCalledWith(10);
-    expect(mockWCLZones).toHaveBeenCalledWith(5);
+    // WCL expansion ID is derived from RIO: 10 - 4 = 6
+    expect(mockWCLZones).toHaveBeenCalledWith(6);
   });
 });
 
@@ -109,7 +105,7 @@ describe('fetchSeasonData - new raid tier', () => {
     const raid2 = createRIORaidTier2(); // starts 2025-06-01, no end
 
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([raid1, raid2]);
     mockWCLZones.mockResolvedValue([
       createWCLZone(),
@@ -140,7 +136,7 @@ describe('fetchSeasonData - new raid tier', () => {
     const newRaid = createRIORaidTier2();
 
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([endedRaid, newRaid]);
     mockWCLZones.mockResolvedValue([
       createWCLZone({
@@ -168,7 +164,7 @@ describe('fetchSeasonData - season transition', () => {
     vi.setSystemTime(new Date('2024-08-01T12:00:00.000Z')); // before raid starts
 
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([createRIORaid()]); // starts 2024-09-10
     mockWCLZones.mockResolvedValue([createWCLZone()]);
 
@@ -188,24 +184,9 @@ describe('fetchSeasonData - WCL unavailable', () => {
     vi.setSystemTime(new Date('2025-01-15T12:00:00.000Z'));
   });
 
-  it('works with RIO-only data when WCL expansion detection fails', async () => {
-    mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockRejectedValue(new Error('WCL API down'));
-    mockRIOStaticData.mockResolvedValue([createRIORaid()]);
-
-    const result = await fetchSeasonData();
-
-    expect(result.raids).toHaveLength(1);
-    // All encounters should have id=0 (no WCL data)
-    result.raids[0].encounters.forEach((enc) => {
-      expect(enc.id).toBe(0);
-    });
-    expect(mockWCLZones).not.toHaveBeenCalled();
-  });
-
   it('works with RIO-only data when WCL zone fetch fails', async () => {
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([createRIORaid()]);
     mockWCLZones.mockRejectedValue(new Error('WCL zones unavailable'));
 
@@ -219,7 +200,7 @@ describe('fetchSeasonData - WCL unavailable', () => {
 
   it('works when WCL returns empty zones array', async () => {
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([createRIORaid()]);
     mockWCLZones.mockResolvedValue([]);
 
@@ -239,7 +220,7 @@ describe('fetchSeasonData - encounter fuzzy matching', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-01-15T12:00:00.000Z'));
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
   });
 
   it('matches short RIO name to full WCL name (startsWith): "Sikran" -> "Sikran, Captain of the Sureki"', async () => {
@@ -366,7 +347,7 @@ describe('fetchSeasonData - zone matching', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2025-01-15T12:00:00.000Z'));
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
   });
 
   it('falls back to id=0 encounters when WCL has no matching zone', async () => {
@@ -391,9 +372,8 @@ describe('fetchSeasonData - new expansion', () => {
     vi.setSystemTime(new Date('2027-01-15T12:00:00.000Z'));
   });
 
-  it('uses the expansion IDs returned by both detection functions', async () => {
+  it('derives WCL expansion ID from RIO using offset', async () => {
     mockRIOExpansionId.mockResolvedValue(11);
-    mockWCLExpansionId.mockResolvedValue(7);
     mockRIOStaticData.mockResolvedValue([
       createRIORaid({
         slug: 'new-expansion-raid',
@@ -416,6 +396,7 @@ describe('fetchSeasonData - new expansion', () => {
     const result = await fetchSeasonData();
 
     expect(mockRIOStaticData).toHaveBeenCalledWith(11);
+    // WCL expansion ID derived: 11 - 4 = 7
     expect(mockWCLZones).toHaveBeenCalledWith(7);
     expect(result.raids).toHaveLength(1);
     expect(result.raids[0].encounters[0].id).toBe(6001);
@@ -457,7 +438,7 @@ describe('fetchSeasonData - no current raids fallback', () => {
     });
 
     mockRIOExpansionId.mockResolvedValue(10);
-    mockWCLExpansionId.mockResolvedValue(5);
+
     mockRIOStaticData.mockResolvedValue([olderRaid, newerRaid]);
     mockWCLZones.mockResolvedValue([
       createWCLZone({ name: 'Old Raid' }),

@@ -19,7 +19,7 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
         <Table.Row>
           <Table.ColumnHeader>Guild</Table.ColumnHeader>
           {raid.encounters.map((b) => (
-            <Table.ColumnHeader key={'header' + b.id}>
+            <Table.ColumnHeader key={'header' + b.rSlug}>
               {b.name.substring(0, b.name.indexOf(',')) || b.name}
             </Table.ColumnHeader>
           ))}
@@ -85,11 +85,15 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
             key={`${pr.guild.slug}-${e.slug}`}
             className={`${e.maxDifficultyDefeated}`}
           >
-            {e.wlogKillUrl ? (
+            {e.maxDifficultyDefeated ? (
               <Box>
-                <CustomLink href={e.wlogKillUrl} target='_blank'>
-                  {e?.maxDifficultyDefeated?.[0].toUpperCase()} Kill
-                </CustomLink>
+                {e.wlogKillUrl ? (
+                  <CustomLink href={e.wlogKillUrl} target='_blank'>
+                    {e.maxDifficultyDefeated[0].toUpperCase()} Kill
+                  </CustomLink>
+                ) : (
+                  <>{e.maxDifficultyDefeated[0].toUpperCase()} Kill</>
+                )}
               </Box>
             ) : null}
             {getPercentage(e)}
@@ -130,14 +134,16 @@ export default function RaidProgressTable({ report }: RaidProgressTableProps) {
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              <Table.Cell>
-                <Box>
-                  <InfoOutlineIcon size={80} />
-                </Box>
-                <Text m='1.25em' fontSize={'lg'}>
-                  This season has no data yet.
-                </Text>
-              </Table.Cell>
+              <Table.Row>
+                <Table.Cell>
+                  <Box>
+                    <InfoOutlineIcon size={80} />
+                  </Box>
+                  <Text m='1.25em' fontSize={'lg'}>
+                    This season has no data yet.
+                  </Text>
+                </Table.Cell>
+              </Table.Row>
             </Table.Body>
           </>
         )}

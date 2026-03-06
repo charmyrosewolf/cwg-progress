@@ -12,10 +12,7 @@ import {
   fetchRaidingStaticData,
   fetchLatestRIOExpansionId
 } from '@/lib/api/raiderio.api';
-import {
-  fetchWCLExpansionZones,
-  fetchLatestWCLExpansionId
-} from '@/lib/api/wlogs.api';
+import { fetchWCLExpansionZones } from '@/lib/api/wlogs.api';
 import {
   Encounter,
   RaidInfo,
@@ -23,6 +20,13 @@ import {
   WCLExpansionZone,
   WCLZoneEncounter
 } from '@/lib/types';
+
+/**
+ * RIO and WCL use different expansion numbering schemes.
+ * RIO 10 = WCL 6 ("The War Within"), RIO 11 = WCL 7 ("Midnight").
+ * This offset derives the correct WCL expansion ID from the RIO expansion ID.
+ */
+const RIO_TO_WCL_EXPANSION_OFFSET = 4;
 
 export type SeasonData = {
   raids: RaidInfo[];
@@ -153,35 +157,25 @@ function buildRaidInfo(
  * Returns current season's raids with full encounter metadata.
  */
 export async function fetchSeasonData(): Promise<SeasonData> {
-  // Auto-detect current expansion IDs from both APIs
-  // WCL is optional — if it fails or has no data, we proceed with Raider.io only
+  // Auto-detect current expansion from Raider.io, then derive the WCL expansion ID
+  // using the known offset between their numbering schemes.
   const rioExpansionId = await fetchLatestRIOExpansionId();
-
-  let wclExpansionId: number | null = null;
-  try {
-    wclExpansionId = await fetchLatestWCLExpansionId();
-  } catch (e) {
-    console.warn(
-      '[raid-data] Failed to detect WCL expansion, proceeding without WCL data'
-    );
-  }
+  const wclExpansionId = rioExpansionId - RIO_TO_WCL_EXPANSION_OFFSET;
 
   console.log(
-    `[raid-data] Detected expansion IDs — RIO: ${rioExpansionId}, WCL: ${wclExpansionId ?? 'none'}`
+    `[raid-data] Detected expansion IDs — RIO: ${rioExpansionId}, WCL: ${wclExpansionId}`
   );
 
   const rioRaids = await fetchRaidingStaticData(rioExpansionId);
 
-  // Fetch WCL zones if available; gracefully fall back to empty array
+  // Fetch WCL zones; gracefully fall back to empty array
   let wclZones: WCLExpansionZone[] = [];
-  if (wclExpansionId !== null) {
-    try {
-      wclZones = await fetchWCLExpansionZones(wclExpansionId);
-    } catch (e) {
-      console.warn(
-        '[raid-data] Failed to fetch WCL zones, proceeding without WCL data'
-      );
-    }
+  try {
+    wclZones = await fetchWCLExpansionZones(wclExpansionId);
+  } catch (e) {
+    console.warn(
+      '[raid-data] Failed to fetch WCL zones, proceeding without WCL data'
+    );
   }
 
   const now = new Date();

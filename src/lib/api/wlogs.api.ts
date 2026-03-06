@@ -102,31 +102,3 @@ export async function fetchWCLExpansionZones(
   return result.data.worldData.expansion.zones as WCLExpansionZone[];
 }
 
-const WCL_EXPANSIONS_QUERY = `{
-  worldData {
-    expansions {
-      id
-      name
-    }
-  }
-}`;
-
-/**
- * Fetches all expansions from WCL and returns the latest (highest) ID.
- */
-export async function fetchLatestWCLExpansionId(): Promise<number> {
-  const result = await postQuery(
-    WCL_EXPANSIONS_QUERY,
-    {},
-    'FAILED TO FETCH WCL EXPANSIONS'
-  );
-
-  const expansions = result?.data?.worldData?.expansions;
-
-  if (!expansions?.length) {
-    throw new Error('No WCL expansions returned');
-  }
-
-  // Highest ID = latest expansion
-  return Math.max(...expansions.map((e: { id: number }) => e.id));
-}
