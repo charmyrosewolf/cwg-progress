@@ -34,8 +34,7 @@ async function Help() {
             Update Schedule
           </Heading>
           <Text fontSize='xl'>
-            This site updates every 4 hours (may change). Discord update is sent
-            out once per day.
+            Data refreshes every 4 hours.
           </Text>
         </Box>
         <Box m='1em'>

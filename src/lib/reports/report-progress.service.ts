@@ -17,7 +17,7 @@ import {
 } from '@/lib/types';
 
 import {
-  GUILDS,
+  getGuilds,
   isCWG,
   getSeasonStartDate,
   getSeasonEndDate
@@ -143,8 +143,10 @@ export async function getReportBuilder(
     mythicGuildRankings
   );
 
+  const guilds = await getGuilds();
+
   for (const rId of builder.getGuildRIds()) {
-    const guild = GUILDS.find((g) => g.rId === rId) as GuildInfo;
+    const guild = guilds.find((g) => g.rId === rId) as GuildInfo;
 
     // console.log(`pulling wlogs for ${guild?.name}`);
 
@@ -264,11 +266,12 @@ export async function generateProgressReport(
   const allEvents: RaidProgressEvent[] = [];
 
   const builder = await getReportBuilder(raid, seasonStartDate, seasonEndDate);
+  const guilds = await getGuilds();
 
-  for (const g of GUILDS) {
+  for (const g of guilds) {
     // if cwg build custom rankings
     if (isCWG(g.slug)) {
-      const cwgProgression = await buildCWGProgressReport(raid);
+      const cwgProgression = await buildCWGProgressReport(raid, g);
 
       if (!cwgProgression) {
         continue;
@@ -325,17 +328,18 @@ export async function generateSummaryReport(
   const allEvents: RaidProgressEvent[] = [];
 
   const builder = await getReportBuilder(raid, seasonStartDate, seasonEndDate);
+  const guilds = await getGuilds();
 
-  for (const g of GUILDS) {
+  for (const g of guilds) {
     // if cwg build custom rankings
     if (isCWG(g.slug)) {
-      const cwgFights = await getCWGWlogReportFights(raid);
+      const cwgFights = await getCWGWlogReportFights(raid, g);
 
       if (!cwgFights) {
         continue;
       }
 
-      const cwgStats = buildCWGProgressStatistics(raid, cwgFights);
+      const cwgStats = buildCWGProgressStatistics(raid, cwgFights, g);
 
       if (cwgStats) {
         allSummaries.push(cwgStats);

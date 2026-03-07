@@ -1,9 +1,7 @@
-import * as GUILD_DATA from './guilds';
 import { fetchSeasonData, SeasonData } from './raid-data.service';
 import { NextRaidInfo, RaidInfo } from '@/lib/types';
 
-export const GUILDS = GUILD_DATA.GUILDS;
-export const isCWG = GUILD_DATA.isCWG;
+export { getGuilds, getCWGGuild, isCWG } from './guild-data.service';
 
 // Cached season data (shared within a single render pass)
 let cachedSeasonData: SeasonData | null = null;

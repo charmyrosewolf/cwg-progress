@@ -1,47 +1,39 @@
 # CWG Progress
 
-## About
+A raid progress tracker for the [Christian WoW Guilds (CWG)](https://www.warcraftlogs.com/guild/id/697334/) community. Displays raid progression statistics and recent updates for member guilds across current World of Warcraft content.
 
-This is a raid progress tracker for the Christian WoW Guilds (CWG) community.
+## Tech Stack
 
-## Technologies
+- [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
+- [React 19](https://react.dev/)
+- [Chakra UI v3](https://chakra-ui.com/)
+- Deployed on [Vercel](https://vercel.com/)
 
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Data Sources
 
-The UI is built with [Chakra UI](https://v2.chakra-ui.com/).
-
-### APIs used:
-
-- [raider.io](https://raider.io/)
-- [Warcraft Logs](https://warcraftlogs.com/)
+- **[Raider.io API](https://raider.io/api)** — guild progression (bosses killed per difficulty) and raid/season metadata
+- **[Warcraft Logs API](https://www.warcraftlogs.com/api/docs)** — encounter IDs, best pull data, kill timestamps, and CWG community logs
+- **Google Sheets** — dynamic guild configuration via published CSV
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000/cwg-progress](http://localhost:3000/cwg-progress) with your browser to see the result.
+Open [http://localhost:3000/cwg-progress](http://localhost:3000/cwg-progress) in your browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load fonts.
+### Environment Variables
 
-## Deploy on Vercel
+| Variable | Required | Description |
+|---|---|---|
+| `WLOGS_ACCESS_TOKEN` | Yes | Warcraft Logs API bearer token |
+| `CRON_SECRET` | Yes | Secret for authenticating the cron endpoint |
+| `DISCORD_WEBHOOK_URL` | Yes | Discord webhook URL for progress notifications |
+| `RAIDERIO_ACCESS_KEY` | No | Raider.io API access key |
+| `GOOGLE_SHEETS_GUILDS_CSV_URL` | No | Published CSV URL for dynamic guild config; falls back to hardcoded defaults |
 
-This project's pipeline and deployment process is handled with the [Vercel Platform](https://vercel.com/).
+## Deployment
 
-See [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Deployed automatically via the [Vercel Platform](https://vercel.com/).

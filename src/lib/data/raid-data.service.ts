@@ -200,8 +200,6 @@ async function findNextRaid(
 
   if (diffMs > thresholdMs || diffMs <= 0) return null;
 
-  console.log('soonest', soonest)
-
   return {
     name: soonest.name,
     shortName: soonest.short_name,

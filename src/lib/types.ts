@@ -123,6 +123,7 @@ export type GuildInfo = {
   realm: string;
   region: Region;
   faction: Faction;
+  optOut?: boolean;
 };
 
 /** Progress Report Types */

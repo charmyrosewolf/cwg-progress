@@ -4,8 +4,18 @@ import {
 } from '../cwg-report-builder';
 import { createFight } from '@/lib/__tests__/fixtures/fight-fixtures';
 import { createRaidInfo, createEncounterDef } from '@/lib/__tests__/fixtures/raid-fixtures';
-import type { WlogFlattenedFight, FightMap } from '@/lib/types';
+import type { WlogFlattenedFight, FightMap, GuildInfo } from '@/lib/types';
 import { sortByBestPulls } from '@/lib/utils/helper';
+
+const cwgGuild: GuildInfo = {
+  rId: 0,
+  name: 'CWG',
+  slug: 'CWG',
+  realm: "Eldre'Thalas",
+  region: 'us',
+  faction: 'alliance',
+  displayName: 'CWG Community'
+};
 
 // ─── Helper: build a bestPullMap from an array of fights ────
 
@@ -29,7 +39,7 @@ describe('buildCWGProgressStatistics', () => {
   const raid = createRaidInfo();
 
   it('returns null when fights is falsy', () => {
-    const result = buildCWGProgressStatistics(raid, null as unknown as WlogFlattenedFight[]);
+    const result = buildCWGProgressStatistics(raid, null as unknown as WlogFlattenedFight[], cwgGuild);
     expect(result).toBeNull();
   });
 
@@ -38,7 +48,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2902, kill: false, difficulty: 4, bossPercentage: 30 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights);
+    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
     expect(result).toBeNull();
   });
 
@@ -48,7 +58,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2921, kill: true, difficulty: 3, bossPercentage: 0 }) // normal kill
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights);
+    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
 
     expect(result).not.toBeNull();
     expect(result!.summaries[0].bossesKilled).toBe(2); // normal
@@ -67,7 +77,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2922, kill: true, difficulty: 5, bossPercentage: 0 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights);
+    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
 
     expect(result).not.toBeNull();
     expect(result!.summaries[0].bossesKilled).toBe(2); // normal: boss 1 + boss 2
@@ -82,7 +92,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2922, kill: true, difficulty: 5, bossPercentage: 0 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights);
+    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
 
     expect(result!.overallSummary.level).toBe('mythic');
     expect(result!.overallSummary.bossesKilled).toBe(1);
@@ -93,7 +103,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2902, kill: true, difficulty: 3, bossPercentage: 0 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights);
+    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
 
     expect(result!.totalBosses).toBe(3); // 3 encounters in createRaidInfo
   });
@@ -106,7 +116,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2921, kill: false, difficulty: 4, bossPercentage: 15 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights);
+    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
 
     // "The Silken Court" → strips "The" → "Silken"
     expect(result!.currentProgression).toBe('H Silken=15%');
@@ -126,7 +136,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 101, kill: false, difficulty: 3, bossPercentage: 40 })
     ];
 
-    const result = buildCWGProgressStatistics(customRaid, fights);
+    const result = buildCWGProgressStatistics(customRaid, fights, cwgGuild);
 
     // "The Bloodbound Horror" → strips "The" → "Bloodbound"
     expect(result!.currentProgression).toBe('N Bloodbound=40%');
@@ -285,7 +295,7 @@ describe('CWG builder - WCL unavailable failsafe', () => {
   const raid = createRaidInfo();
 
   it('buildCWGProgressStatistics returns null when fights array is empty', () => {
-    const result = buildCWGProgressStatistics(raid, []);
+    const result = buildCWGProgressStatistics(raid, [], cwgGuild);
     // No fights → no kills → returns null (CWG has no data to show)
     expect(result).toBeNull();
   });

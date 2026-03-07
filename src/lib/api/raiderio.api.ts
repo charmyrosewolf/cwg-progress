@@ -1,7 +1,7 @@
 /** Raider.io APIv1 */
 /** https://raider.io/api# */
 
-import { GUILDS } from '../data';
+import { getGuilds } from '../data';
 import { RAID_DIFFICULTY, GuildInfo, RaiderIOStaticRaid } from '../types';
 import { devCache } from '../utils/dev-cache';
 import {
@@ -140,7 +140,8 @@ export async function fetchAllRaidRankingsByDifficulty(
   raidSlug: string,
   difficulty: RAID_DIFFICULTY
 ): Promise<RaiderIOGuildRaidRanking[]> {
-  const allIds = GUILDS.map((g) => g.rId).filter((id) => id);
+  const guilds = await getGuilds();
+  const allIds = guilds.map((g) => g.rId).filter((id) => id);
 
   let guildIdsToProcess = allIds.splice(0, 10);
 

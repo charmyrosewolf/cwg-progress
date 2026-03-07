@@ -8,7 +8,6 @@ import {
   wlogsDifficultiesMap
 } from '@/lib/api/wlogs.types';
 import { getSeasonStartDate, getSeasonEndDate } from '@/lib/data';
-import { CWG } from '@/lib/data/guilds';
 import {
   flattenWLOGReportFights,
   getWlogFightMap,
@@ -22,6 +21,7 @@ import {
   difficultiesMap,
   WLOGS_FIGHT_QUERY,
   FightMap,
+  GuildInfo,
   GuildRaidEncounter,
   GuildRaidProgress,
   GuildRaidProgressStatistics,
@@ -123,9 +123,10 @@ function countCWGKillsByDifficulty(
  * @returns
  */
 export async function buildCWGProgressReport(
-  raid: RaidInfo
+  raid: RaidInfo,
+  guild: GuildInfo
 ): Promise<GuildRaidProgress | null> {
-  const flattenedEncounters = await getCWGWlogReportFights(raid);
+  const flattenedEncounters = await getCWGWlogReportFights(raid, guild);
 
   if (!flattenedEncounters?.length) return null;
 
@@ -154,13 +155,12 @@ export async function buildCWGProgressReport(
     (s) => s.bossesKilled
   ) as Statistic;
 
-  return { guild: CWG, raidEncounters, overallSummary };
+  return { guild, raidEncounters, overallSummary };
 }
 
-/** New Stuff */
-
 export async function getCWGWlogReportFights(
-  raid: RaidInfo
+  raid: RaidInfo,
+  guild: GuildInfo
 ): Promise<WlogFlattenedFight[] | null> {
   const seasonStartDate = await getSeasonStartDate();
   const seasonEndDate = await getSeasonEndDate();
@@ -169,9 +169,9 @@ export async function getCWGWlogReportFights(
   const endTs = seasonEndDate ? new Date(seasonEndDate).getTime() : undefined;
 
   const queryVars: BossDataQueryVars = {
-    name: CWG.name,
-    server: CWG.realm.toLowerCase().replaceAll("'", ''),
-    region: CWG.region,
+    name: guild.name,
+    server: guild.realm.toLowerCase().replaceAll("'", ''),
+    region: guild.region,
     startTime: startTs,
     endTime: endTs,
     reportLimit: REPORT_LIMIT
@@ -210,7 +210,8 @@ export async function getCWGWlogReportFights(
  */
 export function buildCWGProgressStatistics(
   raid: RaidInfo,
-  fights: WlogFlattenedFight[]
+  fights: WlogFlattenedFight[],
+  guild: GuildInfo
 ): GuildRaidProgressStatistics | null {
   if (!fights) return null;
 
@@ -263,7 +264,7 @@ export function buildCWGProgressStatistics(
   }
 
   return {
-    guild: CWG,
+    guild,
     overallSummary,
     totalBosses,
     summaries,
