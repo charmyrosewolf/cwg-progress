@@ -215,6 +215,7 @@ async function findNextRaid(
  * Returns current season's raids with full encounter metadata.
  */
 export async function fetchSeasonData(): Promise<SeasonData> {
+
   // Auto-detect current expansion from Raider.io, then derive the WCL expansion ID
   // using the known offset between their numbering schemes.
   const rioExpansionId = await fetchLatestRIOExpansionId();
@@ -238,29 +239,48 @@ export async function fetchSeasonData(): Promise<SeasonData> {
 
   const now = new Date();
 
-  // Filter to current raids: started but not yet ended (using US dates)
-  const currentRioRaids = rioRaids.filter((raid) => {
-    const startDate = new Date(raid.starts.us);
-    const endDate = raid.ends.us ? new Date(raid.ends.us) : null;
+  // Filter to current raids: started but not yet ended (using US dates).
+  // Sort ascending so raidsToUse[0] is always the earliest (used for season start date).
+  const currentRioRaids = rioRaids
+    .filter((raid) => {
+      const startDate = new Date(raid.starts.us);
+      const endDate = raid.ends.us ? new Date(raid.ends.us) : null;
 
-    return startDate <= now && (!endDate || endDate > now);
-  });
+      return startDate <= now && (!endDate || endDate > now);
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.starts.us).getTime() - new Date(b.starts.us).getTime()
+    );
 
-  // If no current raids found, fall back to the most recent raid by start date
+  // If no current raids found, fall back to the most recent season's raids.
+  // Raids in the same season share the same end date, so we find the latest
+  // end date and return all raids that match it.
   if (!currentRioRaids.length) {
     console.warn(
-      '[raid-data] No current raids found from Raider.io dates, falling back to most recent raid'
+      '[raid-data] No current raids found from Raider.io dates, falling back to most recent season'
     );
   }
 
   const raidsToUse = currentRioRaids.length
     ? currentRioRaids
-    : [
-        [...rioRaids].sort(
-          (a, b) =>
-            new Date(b.starts.us).getTime() - new Date(a.starts.us).getTime()
-        )[0]
-      ].filter(Boolean);
+    : (() => {
+        const pastRaids = rioRaids.filter((r) => r.ends.us);
+        if (!pastRaids.length) return rioRaids.slice(-1);
+
+        const latestEndMonth = pastRaids
+          .reduce((latest, r) =>
+            new Date(r.ends.us) > new Date(latest.ends.us) ? r : latest
+          )
+          .ends.us.slice(0, 7); // 'YYYY-MM' — group by month to tolerate day-level differences
+
+        return pastRaids
+          .filter((r) => r.ends.us.slice(0, 7) === latestEndMonth)
+          .sort(
+            (a, b) =>
+              new Date(a.starts.us).getTime() - new Date(b.starts.us).getTime()
+          );
+      })();
 
   // Build RaidInfo for each current raid
   const raids: RaidInfo[] = raidsToUse.map((rioRaid) => {
