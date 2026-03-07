@@ -15,7 +15,7 @@ export default async function NextRaidBanner() {
     <Box
       w='100vw'
       bg={{ base: 'teal.600', _dark: 'teal.800' }}
-      color={{ base: 'white', _dark: 'teal.100' }}
+      color={{ base: 'white', _dark: 'white' }}
       textAlign='center'
       py='0.5em'
       px='1em'

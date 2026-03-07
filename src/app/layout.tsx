@@ -61,13 +61,16 @@ export default function RootLayout({ children }: LayoutProps) {
         }}
       >
         <Providers>
+          <a href="#main-content" className="skip-link">
+            Skip to main content
+          </a>
           <Suspense fallback={null}>
             <NextRaidBanner />
           </Suspense>
           {/* header */}
           <Header />
           {/* main */}
-          <Box as='main' flexGrow='1' w='100vw' maxW='100vw' p='0 2rem'>
+          <Box as='main' id='main-content' flexGrow='1' w='100vw' maxW='100vw' p='0 2rem'>
             {children}
           </Box>
           {/* footer */}
