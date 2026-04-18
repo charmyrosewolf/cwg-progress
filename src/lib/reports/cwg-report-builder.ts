@@ -183,7 +183,7 @@ export async function getCWGWlogReportFights(
     `FAILED TO FETCH FIGHTS FOR ${queryVars.name}`
   );
 
-  const data: WlogReport[] = queryResults.data?.reportData?.reports?.data;
+  const data: WlogReport[] = queryResults?.data?.reportData?.reports?.data;
 
   if (!data) return null;
 

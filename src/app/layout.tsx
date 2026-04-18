@@ -6,6 +6,7 @@ import { REVALIDATION_TIME } from '@/lib/types';
 import { getHost } from '@/lib/utils/helper';
 
 import { Providers } from './providers';
+import { EmotionRegistry } from './registry';
 import { fonts } from './fonts';
 import './globals.css';
 import Header from './components/header';
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: LayoutProps) {
           maxWidth: '100vw'
         }}
       >
+        <EmotionRegistry>
         <Providers>
           <a href="#main-content" className="skip-link">
             Skip to main content
@@ -76,6 +78,7 @@ export default function RootLayout({ children }: LayoutProps) {
           {/* footer */}
           <Footer></Footer>
         </Providers>
+        </EmotionRegistry>
       </body>
     </html>
   );

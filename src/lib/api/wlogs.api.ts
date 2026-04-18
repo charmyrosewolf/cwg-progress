@@ -4,6 +4,9 @@ import { WCLExpansionZone } from '@/lib/types';
 
 const PUBLIC_URL = 'https://www.warcraftlogs.com/api/v2/client';
 
+let _authFailed = false;
+export const isWCLAuthFailed = () => _authFailed;
+
 function getHeaders(): Headers {
   const headers = new Headers();
   const auth = `Bearer ${process.env.WLOGS_ACCESS_TOKEN}`;
@@ -40,7 +43,11 @@ async function rawPostQuery(
   if (res.ok) {
     return data;
   } else {
-    console.error(errorMessage, data);
+    const reason = data?.error ?? data?.errors?.[0]?.message ?? 'Unknown error';
+    if (res.status === 401 || data?.error === 'Unauthenticated.') {
+      _authFailed = true;
+    }
+    console.error(`[wlogs] ${errorMessage}: ${reason}`);
     return Promise.resolve(null);
   }
 }

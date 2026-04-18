@@ -26,7 +26,8 @@ import {
 import {
   WlogReport,
   fetchAllRaidRankingsByDifficulty,
-  postQuery
+  postQuery,
+  isWCLAuthFailed
 } from '@/lib/api';
 
 import {
@@ -64,7 +65,7 @@ async function getWlogReportFightsByGuild(
     `FAILED TO FETCH FIGHTS FOR ${queryVars.name}`
   );
 
-  const data: WlogReport[] = queryResults.data?.reportData?.reports?.data;
+  const data: WlogReport[] = queryResults?.data?.reportData?.reports?.data;
 
   if (!data) return null;
 
@@ -146,9 +147,12 @@ export async function getReportBuilder(
   const guilds = await getGuilds();
 
   for (const rId of builder.getGuildRIds()) {
-    const guild = guilds.find((g) => g.rId === rId) as GuildInfo;
+    if (isWCLAuthFailed()) {
+      console.warn('[wlogs] Skipping remaining guild WCL fetches: unauthenticated');
+      break;
+    }
 
-    // console.log(`pulling wlogs for ${guild?.name}`);
+    const guild = guilds.find((g) => g.rId === rId) as GuildInfo;
 
     const wlogPulls: FightMap | null = await getWlogReportFightsByGuild(
       guild,
