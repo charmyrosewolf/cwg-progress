@@ -17,7 +17,9 @@
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint src/",
-    "format:staged": "prettier --write --tab-width 2 --single-quote --jsx-single-quote --trailing-comma none $(git diff --cached --name-only)"
+    "format:staged": "prettier --write --tab-width 2 --single-quote --jsx-single-quote --trailing-comma none $(git diff --cached --name-only)",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.0.0",
@@ -31,6 +33,7 @@
     "react-icons": "^5.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@types/node": "^20",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
