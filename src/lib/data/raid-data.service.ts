@@ -51,48 +51,66 @@ function normalizeName(name: string): string {
 }
 
 /**
+ * Name matchers ordered most precise first.
+ * The first three are strict enough to trust outside a known zone;
+ * the loose "contains" match is only safe within a zone we already matched.
+ */
+const STRICT_NAME_MATCHERS: ((rio: string, wcl: string) => boolean)[] = [
+  (rio, wcl) => wcl === rio,
+  (rio, wcl) => wcl.startsWith(rio),
+  (rio, wcl) => rio.startsWith(wcl)
+];
+
+const LOOSE_NAME_MATCHERS: ((rio: string, wcl: string) => boolean)[] = [
+  ...STRICT_NAME_MATCHERS,
+  (rio, wcl) => wcl.includes(rio) || rio.includes(wcl)
+];
+
+/**
  * Match a Raider.io encounter name to a WCL encounter by name.
  * Handles cases like "Sikran" matching "Sikran, Captain of the Sureki"
  * and "Dimensius" matching "Dimensius, the All-Devouring".
  */
 function findWCLEncounterMatch(
   rioName: string,
-  wclEncounters: WCLZoneEncounter[]
+  wclEncounters: WCLZoneEncounter[],
+  matchers: ((rio: string, wcl: string) => boolean)[] = LOOSE_NAME_MATCHERS
 ): WCLZoneEncounter | null {
   const normalizedRio = normalizeName(rioName);
 
-  // 1. Exact match
-  const exact = wclEncounters.find(
-    (e) => normalizeName(e.name) === normalizedRio
-  );
-  if (exact) return exact;
-
-  // 2. WCL name starts with Raider.io name (e.g., "sikran" matches "sikran captain of the sureki")
-  const startsWith = wclEncounters.find((e) =>
-    normalizeName(e.name).startsWith(normalizedRio)
-  );
-  if (startsWith) return startsWith;
-
-  // 3. Raider.io name starts with WCL name
-  const reverseStartsWith = wclEncounters.find((e) =>
-    normalizedRio.startsWith(normalizeName(e.name))
-  );
-  if (reverseStartsWith) return reverseStartsWith;
-
-  // 4. Contains match (either direction)
-  const contains = wclEncounters.find(
-    (e) =>
-      normalizeName(e.name).includes(normalizedRio) ||
-      normalizedRio.includes(normalizeName(e.name))
-  );
-  if (contains) return contains;
+  for (const matches of matchers) {
+    const found = wclEncounters.find((e) =>
+      matches(normalizedRio, normalizeName(e.name))
+    );
+    if (found) return found;
+  }
 
   return null;
 }
 
 /**
+ * WCL keeps frozen PTR/beta copies of a zone alongside the live one, and the
+ * copies carry test encounter IDs that never appear in real logs. Prefer a live
+ * zone, and prefer one that actually has encounters — a zone WCL hasn't
+ * populated yet is no use to us.
+ */
+function scoreZone(zone: WCLExpansionZone): number {
+  return (zone.encounters?.length ? 2 : 0) + (zone.frozen ? 0 : 1);
+}
+
+function pickBestZone(zones: WCLExpansionZone[]): WCLExpansionZone | null {
+  if (!zones.length) return null;
+
+  return zones.reduce((best, z) =>
+    scoreZone(z) > scoreZone(best) ? z : best
+  );
+}
+
+/**
  * Match a Raider.io raid to a WCL zone by name.
- * Raid names are generally consistent between APIs.
+ * Raid names are generally consistent between APIs, but duplicates are common:
+ * in Midnight both zone 53 (live) and zone 54 (frozen) are called
+ * "The Venomous Abyss", so name matching alone picks the wrong IDs.
  */
 function findWCLZoneMatch(
   rioRaid: RaiderIOStaticRaid,
@@ -100,17 +118,49 @@ function findWCLZoneMatch(
 ): WCLExpansionZone | null {
   const normalizedRio = normalizeName(rioRaid.name);
 
-  // Exact match first
-  const exact = wclZones.find((z) => normalizeName(z.name) === normalizedRio);
-  if (exact) return exact;
+  // Exact matches first, then contains matches
+  const exact = wclZones.filter((z) => normalizeName(z.name) === normalizedRio);
+  if (exact.length) return pickBestZone(exact);
 
-  // Contains match
-  const contains = wclZones.find(
+  const contains = wclZones.filter(
     (z) =>
       normalizeName(z.name).includes(normalizedRio) ||
       normalizedRio.includes(normalizeName(z.name))
   );
-  if (contains) return contains;
+
+  return pickBestZone(contains);
+}
+
+/**
+ * Last resort when the raid's own zone doesn't list an encounter: WCL sometimes
+ * files a new raid's bosses under a neighbouring zone and leaves the raid's own
+ * zone empty (Midnight's "The Tidebound Grotto" is empty; its only boss,
+ * Nymrissa Wavecaller, sits in the live "The Venomous Abyss" zone).
+ *
+ * Only strict name matching is used here — a loose match against every zone in
+ * the expansion would happily pull in an unrelated Mythic+ dungeon. Live zones
+ * are searched before frozen ones so we don't pick up PTR encounter IDs.
+ */
+function findWCLEncounterInOtherZones(
+  rioName: string,
+  wclZones: WCLExpansionZone[],
+  searchedZone: WCLExpansionZone | null
+): { encounter: WCLZoneEncounter; zone: WCLExpansionZone } | null {
+  const otherZones = wclZones.filter((z) => z !== searchedZone);
+  const byLiveFirst = [
+    ...otherZones.filter((z) => !z.frozen),
+    ...otherZones.filter((z) => z.frozen)
+  ];
+
+  for (const zone of byLiveFirst) {
+    const encounter = findWCLEncounterMatch(
+      rioName,
+      zone.encounters ?? [],
+      STRICT_NAME_MATCHERS
+    );
+
+    if (encounter) return { encounter, zone };
+  }
 
   return null;
 }
@@ -120,16 +170,37 @@ function findWCLZoneMatch(
  */
 function buildRaidInfo(
   rioRaid: RaiderIOStaticRaid,
-  wclZone: WCLExpansionZone | null
+  wclZone: WCLExpansionZone | null,
+  wclZones: WCLExpansionZone[]
 ): RaidInfo {
   const encounters: Encounter[] = rioRaid.encounters.map((rioEnc) => {
-    if (wclZone) {
-      const wclMatch = findWCLEncounterMatch(rioEnc.name, wclZone.encounters);
+    if (wclZones.length) {
+      const wclMatch = wclZone
+        ? findWCLEncounterMatch(rioEnc.name, wclZone.encounters ?? [])
+        : null;
 
       if (wclMatch) {
         return {
           id: wclMatch.id,
           name: wclMatch.name, // use WCL name (more complete, e.g., "Dimensius, the All-Devouring")
+          rSlug: rioEnc.slug
+        };
+      }
+
+      const crossZoneMatch = findWCLEncounterInOtherZones(
+        rioEnc.name,
+        wclZones,
+        wclZone
+      );
+
+      if (crossZoneMatch) {
+        console.warn(
+          `[raid-data] Encounter "${rioEnc.name}" of raid "${rioRaid.name}" found in WCL zone "${crossZoneMatch.zone.name}" (${crossZoneMatch.zone.id}) instead`
+        );
+
+        return {
+          id: crossZoneMatch.encounter.id,
+          name: crossZoneMatch.encounter.name,
           rSlug: rioEnc.slug
         };
       }
@@ -290,7 +361,7 @@ export async function fetchSeasonData(): Promise<SeasonData> {
       console.warn(`[raid-data] No WCL zone match for raid "${rioRaid.name}"`);
     }
 
-    return buildRaidInfo(rioRaid, wclZone);
+    return buildRaidInfo(rioRaid, wclZone, wclZones);
   });
 
   // Season dates from the first current raid

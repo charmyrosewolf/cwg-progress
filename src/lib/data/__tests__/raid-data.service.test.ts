@@ -350,7 +350,26 @@ describe('fetchSeasonData - zone matching', () => {
 
   });
 
-  it('falls back to id=0 encounters when WCL has no matching zone', async () => {
+  it('falls back to id=0 encounters when WCL has no matching zone or encounters', async () => {
+    mockRIOStaticData.mockResolvedValue([createRIORaid()]);
+    mockWCLZones.mockResolvedValue([
+      createWCLZone({
+        name: 'A Completely Different Zone',
+        encounters: [
+          createWCLEncounter({ id: 9001, name: 'Some Other Boss' }),
+          createWCLEncounter({ id: 9002, name: 'Yet Another Boss' })
+        ]
+      })
+    ]);
+
+    const result = await fetchSeasonData();
+
+    result.raids[0].encounters.forEach((enc) => {
+      expect(enc.id).toBe(0);
+    });
+  });
+
+  it('still resolves encounters when the zone name differs but the bosses match', async () => {
     mockRIOStaticData.mockResolvedValue([createRIORaid()]);
     mockWCLZones.mockResolvedValue([
       createWCLZone({ name: 'A Completely Different Zone' })
@@ -358,8 +377,10 @@ describe('fetchSeasonData - zone matching', () => {
 
     const result = await fetchSeasonData();
 
+    // Encounter names are the reliable signal — a renamed zone shouldn't
+    // cost us every encounter ID in the raid.
     result.raids[0].encounters.forEach((enc) => {
-      expect(enc.id).toBe(0);
+      expect(enc.id).toBeGreaterThan(0);
     });
   });
 });
@@ -567,5 +588,176 @@ describe('fetchSeasonData - next raid detection', () => {
 
     // No future raids in current expansion, next expansion failed
     expect(result.nextRaid).toBeNull();
+  });
+});
+
+// ─── Duplicate & Incomplete WCL Zones ───────────────────────
+
+/**
+ * WCL publishes a PTR/beta copy of a zone alongside the live one. Historically
+ * the copy was suffixed ("(PTR)", "(Beta)") so name matching picked the live
+ * zone by accident. In Midnight, zones 53 and 54 are both named
+ * "The Venomous Abyss" — the frozen copy carries test encounter IDs (53470…),
+ * the live one carries the IDs that appear in real logs (3470…).
+ *
+ * WCL also left "The Tidebound Grotto" (zone 57) with zero encounters and filed
+ * its boss under the live Venomous Abyss zone instead.
+ */
+describe('fetchSeasonData - duplicate and incomplete WCL zones', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-26T12:00:00.000Z'));
+    mockRIOExpansionId.mockResolvedValue(11);
+  });
+
+  const liveAbyssZone = () =>
+    createWCLZone({
+      id: 53,
+      name: 'The Venomous Abyss',
+      frozen: false,
+      encounters: [
+        createWCLEncounter({ id: 3470, name: "Nek'zali the Soulcoiler" }),
+        createWCLEncounter({ id: 3429, name: 'The Coiled Altar' }),
+        createWCLEncounter({ id: 3379, name: 'Nymrissa Wavecaller' })
+      ]
+    });
+
+  const frozenAbyssZone = () =>
+    createWCLZone({
+      id: 54,
+      name: 'The Venomous Abyss',
+      frozen: true,
+      encounters: [
+        createWCLEncounter({ id: 53470, name: "Nek'zali the Soulcoiler" }),
+        createWCLEncounter({ id: 53429, name: 'The Coiled Altar' })
+      ]
+    });
+
+  const abyssRIORaid = () =>
+    createRIORaid({
+      slug: 'the-venomous-abyss',
+      name: 'The Venomous Abyss',
+      starts: {
+        us: '2026-08-18T15:00:00.000Z',
+        eu: '2026-08-19T04:00:00.000Z'
+      },
+      encounters: [
+        createRIOEncounter({
+          slug: 'nekzali-the-soulcoiler',
+          name: "Nek'zali the Soulcoiler"
+        }),
+        createRIOEncounter({
+          slug: 'the-coiled-altar',
+          name: 'The Coiled Altar'
+        })
+      ]
+    });
+
+  const grottoRIORaid = () =>
+    createRIORaid({
+      slug: 'the-tidebound-grotto',
+      name: 'The Tidebound Grotto',
+      starts: {
+        us: '2026-08-18T15:00:00.000Z',
+        eu: '2026-08-19T04:00:00.000Z'
+      },
+      encounters: [
+        createRIOEncounter({
+          slug: 'nymrissa-wavecaller',
+          name: 'Nymrissa Wavecaller'
+        })
+      ]
+    });
+
+  it('prefers the live zone over a frozen duplicate with an identical name', async () => {
+    mockRIOStaticData.mockResolvedValue([abyssRIORaid()]);
+    // frozen copy listed first, as WCL returns it
+    mockWCLZones.mockResolvedValue([frozenAbyssZone(), liveAbyssZone()]);
+
+    const result = await fetchSeasonData();
+
+    expect(result.raids[0].encounters.map((e) => e.id)).toEqual([3470, 3429]);
+  });
+
+  it('falls back to another zone when the raid zone has no encounters', async () => {
+    mockRIOStaticData.mockResolvedValue([grottoRIORaid()]);
+    mockWCLZones.mockResolvedValue([
+      createWCLZone({
+        id: 57,
+        name: 'The Tidebound Grotto',
+        frozen: true,
+        encounters: []
+      }),
+      liveAbyssZone()
+    ]);
+
+    const result = await fetchSeasonData();
+
+    expect(result.raids[0].encounters[0].id).toBe(3379);
+    expect(result.raids[0].encounters[0].name).toBe('Nymrissa Wavecaller');
+    expect(result.raids[0].encounters[0].rSlug).toBe('nymrissa-wavecaller');
+  });
+
+  it('prefers a live zone over a frozen one when falling back across zones', async () => {
+    mockRIOStaticData.mockResolvedValue([grottoRIORaid()]);
+    mockWCLZones.mockResolvedValue([
+      createWCLZone({
+        id: 57,
+        name: 'The Tidebound Grotto',
+        frozen: true,
+        encounters: []
+      }),
+      createWCLZone({
+        id: 58,
+        name: 'Some Test Realm Zone',
+        frozen: true,
+        encounters: [
+          createWCLEncounter({ id: 53379, name: 'Nymrissa Wavecaller' })
+        ]
+      }),
+      liveAbyssZone()
+    ]);
+
+    const result = await fetchSeasonData();
+
+    expect(result.raids[0].encounters[0].id).toBe(3379);
+  });
+
+  it('does not loosely match across zones when the raid zone lacks the encounter', async () => {
+    mockRIOStaticData.mockResolvedValue([
+      createRIORaid({
+        slug: 'the-tidebound-grotto',
+        name: 'The Tidebound Grotto',
+        starts: {
+          us: '2026-08-18T15:00:00.000Z',
+          eu: '2026-08-19T04:00:00.000Z'
+        },
+        encounters: [
+          createRIOEncounter({
+            slug: 'the-coiled-altar',
+            name: 'The Coiled Altar'
+          })
+        ]
+      })
+    ]);
+    mockWCLZones.mockResolvedValue([
+      createWCLZone({
+        id: 57,
+        name: 'The Tidebound Grotto',
+        frozen: true,
+        encounters: []
+      }),
+      createWCLZone({
+        id: 55,
+        name: 'Mythic+ Season 2',
+        frozen: false,
+        encounters: [createWCLEncounter({ id: 12993, name: 'Altar' })]
+      })
+    ]);
+
+    const result = await fetchSeasonData();
+
+    expect(result.raids[0].encounters[0].id).toBe(0);
+    expect(result.raids[0].encounters[0].name).toBe('The Coiled Altar');
   });
 });
