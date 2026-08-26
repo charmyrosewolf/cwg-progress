@@ -1,4 +1,4 @@
-import { createEventsByGuild } from '../report-progress.service';
+import { createEventsByGuild } from '../strategies/guild-report-strategy';
 import type {
   GuildInfo,
   RaidInfo,

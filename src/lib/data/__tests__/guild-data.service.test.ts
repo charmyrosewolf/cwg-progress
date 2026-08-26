@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   parseGuildsCsv,
   getGuilds,
-  getCWGGuild,
-  isCWG,
+  getCommunity,
+  isCommunity,
   clearGuildCache
 } from '../guild-data.service';
 
@@ -246,9 +246,9 @@ describe('getGuilds', () => {
   });
 });
 
-// ─── getCWGGuild ────────────────────────────────────────────
+// ─── getCommunity ───────────────────────────────────────────
 
-describe('getCWGGuild', () => {
+describe('getCommunity', () => {
   beforeEach(() => {
     clearGuildCache();
     vi.restoreAllMocks();
@@ -257,7 +257,7 @@ describe('getCWGGuild', () => {
   it('returns CWG from fetched guild list', async () => {
     mockSheetsFetch(VALID_CSV);
 
-    const cwg = await getCWGGuild();
+    const cwg = await getCommunity();
 
     expect(cwg.slug).toBe('CWG');
     expect(cwg.displayName).toBe('CWG Community');
@@ -271,20 +271,20 @@ describe('getCWGGuild', () => {
 
     mockSheetsFetch(csv);
 
-    await expect(getCWGGuild()).rejects.toThrow('CWG guild not found');
+    await expect(getCommunity()).rejects.toThrow('CWG community not found');
   });
 });
 
-// ─── isCWG ──────────────────────────────────────────────────
+// ─── isCommunity ────────────────────────────────────────────
 
-describe('isCWG', () => {
+describe('isCommunity', () => {
   it('returns true for CWG slug', () => {
-    expect(isCWG('CWG')).toBe(true);
+    expect(isCommunity('CWG')).toBe(true);
   });
 
   it('returns false for other slugs', () => {
-    expect(isCWG('born-again')).toBe(false);
-    expect(isCWG('cwg')).toBe(false); // case-sensitive
-    expect(isCWG('')).toBe(false);
+    expect(isCommunity('born-again')).toBe(false);
+    expect(isCommunity('cwg')).toBe(false); // case-sensitive
+    expect(isCommunity('')).toBe(false);
   });
 });

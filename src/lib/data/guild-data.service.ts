@@ -13,6 +13,9 @@ import { devCache } from '@/lib/utils/dev-cache';
 
 const CWG_SLUG = 'CWG';
 
+/** Slugs that identify a community aggregate rather than a real Raider.io guild. */
+const COMMUNITY_SLUGS = new Set([CWG_SLUG]);
+
 // ─── CSV Parsing ────────────────────────────────────────────
 
 /**
@@ -191,24 +194,28 @@ export async function getGuilds(): Promise<GuildInfo[]> {
 }
 
 /**
- * Returns the CWG guild info from the guild list.
+ * Returns the CWG community info from the guild list.
  */
-export async function getCWGGuild(): Promise<GuildInfo> {
+export async function getCommunity(): Promise<GuildInfo> {
   const guilds = await getGuilds();
   const cwg = guilds.find((g) => g.slug === CWG_SLUG);
 
   if (!cwg) {
-    throw new Error('[guild-data] CWG guild not found in guild list');
+    throw new Error('[guild-data] CWG community not found in guild list');
   }
 
   return cwg;
 }
 
 /**
- * Checks if a guild slug belongs to the CWG community guild.
+ * Checks if a slug belongs to a community rather than a real guild.
+ *
+ * A community is an aggregate that doesn't exist on Raider.io, so its progress
+ * is built from Warcraft Logs alone. CWG is the only one today; add a slug here
+ * when another appears.
  */
-export function isCWG(guildSlug: string): boolean {
-  return guildSlug === CWG_SLUG;
+export function isCommunity(guildSlug: string): boolean {
+  return COMMUNITY_SLUGS.has(guildSlug);
 }
 
 /**

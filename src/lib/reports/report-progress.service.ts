@@ -1,7 +1,5 @@
 import {
   GuildInfo,
-  GuildRaidEncounter,
-  GuildRaidEncountersInfo,
   GuildRaidProgress,
   RaidInfo,
   ProgressReport,
@@ -9,19 +7,12 @@ import {
   RaidProgressEvent,
   GuildRaidProgressStatistics,
   SummaryReport,
-  Statistic,
   REPORT_LIMIT,
   WLOGS_FIGHT_QUERY,
-  createStatistics,
   FightMap
 } from '@/lib/types';
 
-import {
-  getGuilds,
-  isCWG,
-  getSeasonStartDate,
-  getSeasonEndDate
-} from '@/lib/data';
+import { getGuilds, getSeasonStartDate, getSeasonEndDate } from '@/lib/data';
 
 import {
   WlogReport,
@@ -30,25 +21,22 @@ import {
   isWCLAuthFailed
 } from '@/lib/api';
 
-import {
-  flattenWLOGReportFights,
-  getWlogFightMap,
-  sortFightMapByBestPulls
-} from '@/lib/utils/helper';
-import {
-  buildCWGProgressReport,
-  buildCWGProgressStatistics,
-  buildCWGRaidEncounters,
-  getCWGWlogReportFights
-} from '@/lib/reports/cwg-report-builder';
+import { flattenWLOGReportFights, getWlogFightMap } from '@/lib/utils/helper';
 import { ReportBuilder } from '@/lib/reports/report-builder';
+import {
+  createEventsByGuild,
+  getStrategy
+} from '@/lib/reports/strategies/guild-report-strategy';
+
+/** How many of the most recent events a raid report carries. */
+const MAX_RECENT_EVENTS = 5;
 
 async function getWlogReportFightsByGuild(
   guild: GuildInfo,
   seasonStartDate: string,
   seasonEndDate: string | number
 ): Promise<FightMap | null> {
-  const { name, realm, region, slug } = guild;
+  const { name, realm, region } = guild;
 
   const queryVars: BossDataQueryVars = {
     name,
@@ -75,37 +63,6 @@ async function getWlogReportFightsByGuild(
   const fightMap = getWlogFightMap(flattenedEncounters);
 
   return fightMap;
-}
-
-export function createEventsByGuild(
-  guild: GuildInfo,
-  raid: RaidInfo,
-  encounters: GuildRaidEncounter[]
-): RaidProgressEvent[] {
-  const guildName = guild.displayName || guild.name;
-
-  return encounters
-    .filter((e) => e.defeatedAt || e.lowestBossPercentage)
-    .map((e) => {
-      if (e.defeatedAt) {
-        return {
-          guildName,
-          raidName: raid.name,
-          bossName: e.name,
-          type: 'KILL',
-          dateOccurred: new Date(e.defeatedAt)
-        };
-      } else {
-        return {
-          guildName,
-          raidName: raid.name,
-          bossName: e.name,
-          type: 'BEST',
-          lowestPercentage: e.lowestBossPercentage || 0,
-          dateOccurred: e.attemptedAt ? new Date(e.attemptedAt) : new Date()
-        };
-      }
-    });
 }
 
 /**
@@ -148,7 +105,9 @@ export async function getReportBuilder(
 
   for (const rId of builder.getGuildRIds()) {
     if (isWCLAuthFailed()) {
-      console.warn('[wlogs] Skipping remaining guild WCL fetches: unauthenticated');
+      console.warn(
+        '[wlogs] Skipping remaining guild WCL fetches: unauthenticated'
+      );
       break;
     }
 
@@ -170,90 +129,21 @@ export async function getReportBuilder(
   return builder;
 }
 
-// ─── Shared helpers for report generation ───────────────────
-
-function countKillsByDifficulty(progressionForGuild: GuildRaidEncountersInfo): {
-  normalKills: number;
-  heroicKills: number;
-  mythicKills: number;
-} {
-  const normalKills =
-    progressionForGuild.normal.reduce(
-      (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-      0
-    ) || 0;
-
-  const heroicKills =
-    progressionForGuild.heroic.reduce(
-      (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-      0
-    ) || 0;
-
-  const mythicKills =
-    progressionForGuild.mythic.reduce(
-      (acc, b) => ('firstDefeated' in b ? acc + 1 : acc),
-      0
-    ) || 0;
-
-  return { normalKills, heroicKills, mythicKills };
-}
-
-type ProcessedGuildData = {
-  guild: GuildInfo;
-  overallSummary: Statistic;
-  totalBosses: number;
-  summaries: Statistic[];
-  bestPulls: GuildRaidEncounter[];
-  currentProgression: string;
-  events: RaidProgressEvent[];
-};
-
-function processRegularGuild(
+/**
+ * Flattens every guild's encounters into a single most-recent-first event feed.
+ * Cross-guild aggregation, so it stays here rather than in a strategy.
+ */
+function buildRecentEvents(
   raid: RaidInfo,
-  builder: ReportBuilder,
-  guild: GuildInfo
-): ProcessedGuildData | null {
-  const progressionForGuild = builder.getEncounterInfoByGuild(guild.rId);
-  if (!progressionForGuild) return null;
-
-  const { normalKills, heroicKills, mythicKills } =
-    countKillsByDifficulty(progressionForGuild);
-
-  if (!normalKills && !heroicKills && !mythicKills) return null;
-
-  const totalBosses = raid.encounters.length;
-
-  const summaries = createStatistics(
-    totalBosses,
-    normalKills,
-    heroicKills,
-    mythicKills
+  progressions: GuildRaidProgress[]
+): RaidProgressEvent[] {
+  const allEvents = progressions.flatMap((p) =>
+    createEventsByGuild(p.guild, raid, p.raidEncounters)
   );
 
-  const overallSummary = summaries.findLast(
-    (s) => s.bossesKilled
-  ) as Statistic;
+  allEvents.sort((a, b) => (a.dateOccurred < b.dateOccurred ? 1 : -1));
 
-  guild.profileUrl = progressionForGuild.profileUrl;
-
-  const currentProgression =
-    builder.toStringCurrentProgressionBossByRId(guild.rId) ?? '';
-
-  const bestPulls = progressionForGuild.bestPulls;
-
-  const events = bestPulls
-    ? createEventsByGuild(guild, raid, bestPulls)
-    : [];
-
-  return {
-    guild,
-    overallSummary,
-    totalBosses,
-    summaries,
-    bestPulls,
-    currentProgression,
-    events
-  };
+  return allEvents.slice(0, MAX_RECENT_EVENTS);
 }
 
 export async function generateProgressReport(
@@ -264,62 +154,23 @@ export async function generateProgressReport(
 
   const seasonStartDate = await getSeasonStartDate();
   const seasonEndDate = await getSeasonEndDate();
-
-  // Fetch progress for raid
-  let raidProgression: GuildRaidProgress[] = [];
-  const allEvents: RaidProgressEvent[] = [];
-
-  const builder = await getReportBuilder(raid, seasonStartDate, seasonEndDate);
   const guilds = await getGuilds();
+  const builder = await getReportBuilder(raid, seasonStartDate, seasonEndDate);
 
-  for (const g of guilds) {
-    // if cwg build custom rankings
-    if (isCWG(g.slug)) {
-      const cwgProgression = await buildCWGProgressReport(raid, g);
+  const results = await Promise.all(
+    guilds.map((guild) => getStrategy(guild, builder).buildProgress(raid, guild))
+  );
 
-      if (!cwgProgression) {
-        continue;
-      }
+  const raidProgression = results.filter(
+    (p): p is GuildRaidProgress => p !== null
+  );
 
-      // TODO: add events and stuff here
-
-      const events: RaidProgressEvent[] = createEventsByGuild(
-        g,
-        raid,
-        cwgProgression.raidEncounters
-      );
-
-      allEvents.push(...events);
-
-      raidProgression.push(cwgProgression);
-
-      continue;
-    }
-
-    const processed = processRegularGuild(raid, builder, g);
-    if (!processed) continue;
-
-    raidProgression.push({
-      guild: processed.guild,
-      raidEncounters: processed.bestPulls as GuildRaidEncounter[],
-      overallSummary: processed.overallSummary
-    });
-
-    allEvents.push(...processed.events);
-  }
-
-  allEvents.sort((a, b) => (a.dateOccurred < b.dateOccurred ? 1 : -1));
-
-  const top5Events = allEvents.slice(0, 5);
-
-  const report: ProgressReport = {
+  return {
     raid,
-    raidProgression: raidProgression,
+    raidProgression,
     createdOn: new Date(),
-    recentEvents: top5Events
+    recentEvents: buildRecentEvents(raid, raidProgression)
   };
-
-  return report;
 }
 
 export async function generateSummaryReport(
@@ -327,70 +178,23 @@ export async function generateSummaryReport(
 ): Promise<SummaryReport | null> {
   const seasonStartDate = await getSeasonStartDate();
   const seasonEndDate = await getSeasonEndDate();
-
-  const allSummaries: GuildRaidProgressStatistics[] = [];
-  const allEvents: RaidProgressEvent[] = [];
-
-  const builder = await getReportBuilder(raid, seasonStartDate, seasonEndDate);
   const guilds = await getGuilds();
+  const builder = await getReportBuilder(raid, seasonStartDate, seasonEndDate);
 
-  for (const g of guilds) {
-    // if cwg build custom rankings
-    if (isCWG(g.slug)) {
-      const cwgFights = await getCWGWlogReportFights(raid, g);
+  const results = await Promise.all(
+    guilds.map((guild) => getStrategy(guild, builder).buildSummary(raid, guild))
+  );
 
-      if (!cwgFights) {
-        continue;
-      }
+  const summaries: GuildRaidProgressStatistics[] = results.flatMap((r) =>
+    r.stats ? [r.stats] : []
+  );
 
-      const cwgStats = buildCWGProgressStatistics(raid, cwgFights, g);
+  const recentEvents: RaidProgressEvent[] = results.flatMap((r) => r.events);
 
-      if (cwgStats) {
-        allSummaries.push(cwgStats);
-      }
-
-      const fightMap: FightMap = getWlogFightMap(cwgFights);
-      const bestPullMap: FightMap | null = sortFightMapByBestPulls(fightMap);
-
-      const cwgEncounters = buildCWGRaidEncounters(
-        raid,
-        cwgFights,
-        bestPullMap
-      );
-
-      if (cwgEncounters) {
-        const events: RaidProgressEvent[] = createEventsByGuild(
-          g,
-          raid,
-          cwgEncounters
-        );
-
-        allEvents.push(...events);
-      }
-
-      continue;
-    }
-
-    const processed = processRegularGuild(raid, builder, g);
-    if (!processed) continue;
-
-    allSummaries.push({
-      guild: processed.guild,
-      overallSummary: processed.overallSummary,
-      totalBosses: processed.totalBosses,
-      summaries: processed.summaries,
-      currentProgression: processed.currentProgression
-    } as GuildRaidProgressStatistics);
-
-    allEvents.push(...processed.events);
-  }
-
-  const report: SummaryReport = {
+  return {
     raid,
-    summaries: allSummaries,
-    recentEvents: allEvents,
+    summaries,
+    recentEvents,
     createdOn: new Date()
   };
-
-  return report;
 }

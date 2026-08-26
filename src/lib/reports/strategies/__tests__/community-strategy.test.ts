@@ -1,7 +1,7 @@
 import {
-  buildCWGProgressStatistics,
-  buildCWGRaidEncounters
-} from '../cwg-report-builder';
+  buildProgressStatistics,
+  buildRaidEncounters
+} from '../community-strategy';
 import { createFight } from '@/lib/__tests__/fixtures/fight-fixtures';
 import { createRaidInfo, createEncounterDef } from '@/lib/__tests__/fixtures/raid-fixtures';
 import type { WlogFlattenedFight, FightMap, GuildInfo } from '@/lib/types';
@@ -33,13 +33,13 @@ function buildBestPullMap(
   return map;
 }
 
-// ─── buildCWGProgressStatistics ─────────────────────────────
+// ─── buildProgressStatistics ─────────────────────────────
 
-describe('buildCWGProgressStatistics', () => {
+describe('buildProgressStatistics', () => {
   const raid = createRaidInfo();
 
   it('returns null when fights is falsy', () => {
-    const result = buildCWGProgressStatistics(raid, null as unknown as WlogFlattenedFight[], cwgGuild);
+    const result = buildProgressStatistics(raid, null as unknown as WlogFlattenedFight[], cwgGuild);
     expect(result).toBeNull();
   });
 
@@ -48,7 +48,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2902, kill: false, difficulty: 4, bossPercentage: 30 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
+    const result = buildProgressStatistics(raid, fights, cwgGuild);
     expect(result).toBeNull();
   });
 
@@ -58,7 +58,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2921, kill: true, difficulty: 3, bossPercentage: 0 }) // normal kill
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
+    const result = buildProgressStatistics(raid, fights, cwgGuild);
 
     expect(result).not.toBeNull();
     expect(result!.summaries[0].bossesKilled).toBe(2); // normal
@@ -77,7 +77,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2922, kill: true, difficulty: 5, bossPercentage: 0 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
+    const result = buildProgressStatistics(raid, fights, cwgGuild);
 
     expect(result).not.toBeNull();
     expect(result!.summaries[0].bossesKilled).toBe(2); // normal: boss 1 + boss 2
@@ -92,7 +92,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2922, kill: true, difficulty: 5, bossPercentage: 0 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
+    const result = buildProgressStatistics(raid, fights, cwgGuild);
 
     expect(result!.overallSummary.level).toBe('mythic');
     expect(result!.overallSummary.bossesKilled).toBe(1);
@@ -103,7 +103,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2902, kill: true, difficulty: 3, bossPercentage: 0 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
+    const result = buildProgressStatistics(raid, fights, cwgGuild);
 
     expect(result!.totalBosses).toBe(3); // 3 encounters in createRaidInfo
   });
@@ -116,7 +116,7 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 2921, kill: false, difficulty: 4, bossPercentage: 15 })
     ];
 
-    const result = buildCWGProgressStatistics(raid, fights, cwgGuild);
+    const result = buildProgressStatistics(raid, fights, cwgGuild);
 
     // "The Silken Court" → strips "The" → "Silken"
     expect(result!.currentProgression).toBe('H Silken=15%');
@@ -136,16 +136,16 @@ describe('buildCWGProgressStatistics', () => {
       createFight({ encounterID: 101, kill: false, difficulty: 3, bossPercentage: 40 })
     ];
 
-    const result = buildCWGProgressStatistics(customRaid, fights, cwgGuild);
+    const result = buildProgressStatistics(customRaid, fights, cwgGuild);
 
     // "The Bloodbound Horror" → strips "The" → "Bloodbound"
     expect(result!.currentProgression).toBe('N Bloodbound=40%');
   });
 });
 
-// ─── buildCWGRaidEncounters ─────────────────────────────────
+// ─── buildRaidEncounters ─────────────────────────────────
 
-describe('buildCWGRaidEncounters', () => {
+describe('buildRaidEncounters', () => {
   const raid = createRaidInfo();
 
   it('returns encounters with kill data populated', () => {
@@ -162,7 +162,7 @@ describe('buildCWGRaidEncounters', () => {
     ];
 
     const bestPullMap = buildBestPullMap(fights);
-    const result = buildCWGRaidEncounters(raid, fights, bestPullMap);
+    const result = buildRaidEncounters(raid, fights, bestPullMap);
 
     const sikran = result.find((e) => e.encounterID === 2902)!;
     expect(sikran.maxDifficultyDefeated).toBe('heroic');
@@ -186,7 +186,7 @@ describe('buildCWGRaidEncounters', () => {
     ];
 
     const bestPullMap = buildBestPullMap(fights);
-    const result = buildCWGRaidEncounters(raid, fights, bestPullMap);
+    const result = buildRaidEncounters(raid, fights, bestPullMap);
 
     const sikran = result.find((e) => e.encounterID === 2902)!;
     // No kill → maxDifficultyDefeated is null, so attempted >= defeated always true
@@ -220,7 +220,7 @@ describe('buildCWGRaidEncounters', () => {
     ];
 
     const bestPullMap = buildBestPullMap(fights);
-    const result = buildCWGRaidEncounters(raid, fights, bestPullMap);
+    const result = buildRaidEncounters(raid, fights, bestPullMap);
 
     const sikran = result.find((e) => e.encounterID === 2902)!;
     expect(sikran.attemptedAt).toBe(pullStart.toISOString());
@@ -233,7 +233,7 @@ describe('buildCWGRaidEncounters', () => {
 
     // Empty bestPullMap
     const emptyMap: FightMap = new Map();
-    const result = buildCWGRaidEncounters(raid, fights, emptyMap);
+    const result = buildRaidEncounters(raid, fights, emptyMap);
 
     const sikran = result.find((e) => e.encounterID === 2902)!;
     expect(sikran.maxDifficultyAttempted).toBeNull();
@@ -246,7 +246,7 @@ describe('buildCWGRaidEncounters', () => {
     ];
 
     const bestPullMap = buildBestPullMap(fights);
-    const result = buildCWGRaidEncounters(raid, fights, bestPullMap);
+    const result = buildRaidEncounters(raid, fights, bestPullMap);
 
     expect(result).toHaveLength(3); // raid has 3 encounters
     expect(result.map((e) => e.encounterID)).toEqual([2902, 2921, 2922]);
@@ -279,7 +279,7 @@ describe('buildCWGRaidEncounters', () => {
     const bestPullMap: FightMap = new Map();
     bestPullMap.set(2902, fights[1]); // normal attempt
 
-    const result = buildCWGRaidEncounters(raid, fights, bestPullMap);
+    const result = buildRaidEncounters(raid, fights, bestPullMap);
 
     const sikran = result.find((e) => e.encounterID === 2902)!;
     expect(sikran.maxDifficultyDefeated).toBe('heroic');
@@ -294,15 +294,15 @@ describe('buildCWGRaidEncounters', () => {
 describe('CWG builder - WCL unavailable failsafe', () => {
   const raid = createRaidInfo();
 
-  it('buildCWGProgressStatistics returns null when fights array is empty', () => {
-    const result = buildCWGProgressStatistics(raid, [], cwgGuild);
+  it('buildProgressStatistics returns null when fights array is empty', () => {
+    const result = buildProgressStatistics(raid, [], cwgGuild);
     // No fights → no kills → returns null (CWG has no data to show)
     expect(result).toBeNull();
   });
 
-  it('buildCWGRaidEncounters returns encounters with no kill/attempt data when fights are empty', () => {
+  it('buildRaidEncounters returns encounters with no kill/attempt data when fights are empty', () => {
     const emptyMap: FightMap = new Map();
-    const result = buildCWGRaidEncounters(raid, [], emptyMap);
+    const result = buildRaidEncounters(raid, [], emptyMap);
 
     // Still returns all 3 encounters from raid definition
     expect(result).toHaveLength(3);
