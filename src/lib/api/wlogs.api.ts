@@ -1,17 +1,17 @@
 /** Warcraft Logs APIv2 */
 import { devCache } from '@/lib/utils/dev-cache';
 import { WCLExpansionZone } from '@/lib/types';
+import { getAccessToken, clearAccessToken } from './wlogs-auth';
 
 const PUBLIC_URL = 'https://www.warcraftlogs.com/api/v2/client';
 
 let _authFailed = false;
 export const isWCLAuthFailed = () => _authFailed;
 
-function getHeaders(): Headers {
+function getHeaders(token: string): Headers {
   const headers = new Headers();
-  const auth = `Bearer ${process.env.WLOGS_ACCESS_TOKEN}`;
 
-  headers.append('Authorization', auth);
+  headers.append('Authorization', `Bearer ${token}`);
   headers.append('Content-Type', 'application/json');
 
   return headers;
@@ -19,16 +19,26 @@ function getHeaders(): Headers {
 
 type variablesType = { [key: string]: any };
 
+const isUnauthenticated = (res: Response, data: any) =>
+  res.status === 401 || data?.error === 'Unauthenticated.';
+
 async function rawPostQuery(
   query: string,
   variables: variablesType,
-  errorMessage: string
+  errorMessage: string,
+  retried = false
 ): Promise<any> {
-  const headers = getHeaders();
+  const token = await getAccessToken();
+
+  if (!token) {
+    _authFailed = true;
+    console.error(`[wlogs] ${errorMessage}: no access token`);
+    return null;
+  }
 
   const options = {
     method: 'POST',
-    headers: headers,
+    headers: getHeaders(token),
     body: JSON.stringify({
       query: query,
       variables: variables
@@ -42,14 +52,20 @@ async function rawPostQuery(
   // Note that this won't fail in the case that the query is too complex
   if (res.ok) {
     return data;
-  } else {
-    const reason = data?.error ?? data?.errors?.[0]?.message ?? 'Unknown error';
-    if (res.status === 401 || data?.error === 'Unauthenticated.') {
-      _authFailed = true;
-    }
-    console.error(`[wlogs] ${errorMessage}: ${reason}`);
-    return Promise.resolve(null);
   }
+
+  // WCL can revoke a token before its stated expiry, so get a new one once
+  if (isUnauthenticated(res, data) && !retried) {
+    clearAccessToken();
+    return rawPostQuery(query, variables, errorMessage, true);
+  }
+
+  const reason = data?.error ?? data?.errors?.[0]?.message ?? 'Unknown error';
+  if (isUnauthenticated(res, data)) {
+    _authFailed = true;
+  }
+  console.error(`[wlogs] ${errorMessage}: ${reason}`);
+  return null;
 }
 
 /**

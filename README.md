@@ -28,7 +28,8 @@ Open [http://localhost:3000/cwg-progress](http://localhost:3000/cwg-progress) in
 
 | Variable | Required | Description |
 |---|---|---|
-| `WLOGS_ACCESS_TOKEN` | Yes | Warcraft Logs API bearer token |
+| `WLOGS_CLIENT_ID` | Yes | Warcraft Logs API client ID; the app fetches and refreshes its own access token |
+| `WLOGS_CLIENT_SECRET` | Yes | Warcraft Logs API client secret |
 | `CRON_SECRET` | Yes | Secret for authenticating the cron endpoint |
 | `DISCORD_WEBHOOK_URL` | Yes | Discord webhook URL for progress notifications |
 | `RAIDERIO_ACCESS_KEY` | No | Raider.io API access key |
