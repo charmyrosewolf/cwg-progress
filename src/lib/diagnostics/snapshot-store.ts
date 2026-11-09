@@ -35,9 +35,12 @@ export function createBlobSnapshotStore(): SnapshotStore {
   };
 }
 
-/** null when no blob token is configured, so callers skip the comparison. */
+/**
+ * null when no store is connected, so callers skip the comparison. The SDK takes either a
+ * read-write token or OIDC + a store id (what a CLI-created private store connects with).
+ */
 export function createSnapshotStore(
   env: Record<string, string | undefined> = process.env
 ): SnapshotStore | null {
-  return env.BLOB_READ_WRITE_TOKEN ? createBlobSnapshotStore() : null;
+  return env.BLOB_READ_WRITE_TOKEN || env.BLOB_STORE_ID ? createBlobSnapshotStore() : null;
 }

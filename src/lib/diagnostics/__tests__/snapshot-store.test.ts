@@ -39,6 +39,12 @@ describe('createSnapshotStore', () => {
 
     expect(store?.kind).toBe('blob');
   });
+
+  it('returns a blob store when only the OIDC store id is set', () => {
+    const store = createSnapshotStore({ BLOB_STORE_ID: 'store_x' });
+
+    expect(store?.kind).toBe('blob');
+  });
 });
 
 describe('blob snapshot store', () => {
