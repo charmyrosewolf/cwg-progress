@@ -167,12 +167,19 @@ describe('generateSummaryReport', () => {
     expect(report!.summaries.map((s) => s.guild.slug)).not.toContain('CWG');
   });
 
-  it('keeps the ranked guild even when WCL returns nothing', async () => {
+  it('keeps both rows when WCL rejects the query, flagging only the community', async () => {
     mockWclQuery.mockResolvedValue(null); // auth failure / rate limit
 
     const report = await generateSummaryReport(raid);
 
-    expect(report!.summaries.map((s) => s.guild.slug)).toEqual(['test-guild']);
+    const bySlug = Object.fromEntries(
+      report!.summaries.map((s) => [s.guild.slug, s])
+    );
+    expect(Object.keys(bySlug).sort()).toEqual(['CWG', 'test-guild']);
+    expect(bySlug['test-guild'].overallSummary.summary).toBe('1/3 N');
+    expect(bySlug['test-guild'].dataUnavailable).toBeUndefined();
+    expect(bySlug['CWG'].dataUnavailable).toBe(true);
+    expect(bySlug['CWG'].overallSummary.summary).toBe('-');
   });
 
   it('aggregates events from every guild', async () => {
@@ -185,7 +192,7 @@ describe('generateSummaryReport', () => {
 
   it('excludes guilds with no kills at all', async () => {
     rankGuildWith([]);
-    mockWclQuery.mockResolvedValue(null);
+    wclReturns([]); // WCL answered, the community just has no kills
 
     const report = await generateSummaryReport(raid);
 

@@ -217,6 +217,8 @@ export type GuildRaidProgressStatistics = {
   totalBosses: number;
   summaries: Array<Statistic>;
   currentProgression: string;
+  // set when the source fetch failed; the row is a placeholder, not "0 kills"
+  dataUnavailable?: boolean;
 };
 
 export type GuildRaidProgress = {
