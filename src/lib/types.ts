@@ -265,7 +265,8 @@ export type ProgressReport = {
 /** constants **/
 
 // Revalidation interval (in seconds) - controls page ISR and all API refresh cycles
-export const REVALIDATION_TIME = 3600 * 4; // 4 hours
+// 4 hours; app/layout.tsx repeats it as a literal (Next requires one), a test keeps them equal
+export const REVALIDATION_TIME = 3600 * 4;
 
 // CAREFUL ABOUT RAISING THIS NUMBER DUE TO RATE LIMITS
 export const REPORT_LIMIT = 50;

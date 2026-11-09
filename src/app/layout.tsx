@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Box } from '@chakra-ui/react';
 
-import { REVALIDATION_TIME } from '@/lib/types';
 import { getHost } from '@/lib/utils/helper';
 
 import { Providers } from './providers';
@@ -43,7 +42,9 @@ type LayoutProps = Readonly<{
   children: React.ReactNode;
 }>;
 
-export const revalidate = REVALIDATION_TIME;
+// Must be a literal (Next rejects identifiers here); mirrors REVALIDATION_TIME in lib/types,
+// enforced by app/__tests__/layout-revalidate.test.ts.
+export const revalidate = 14400;
 
 export default function RootLayout({ children }: LayoutProps) {
   return (
