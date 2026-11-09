@@ -34,6 +34,7 @@ Open [http://localhost:3000/cwg-progress](http://localhost:3000/cwg-progress) in
 | `DISCORD_WEBHOOK_URL` | Yes | Discord webhook URL for progress notifications |
 | `RAIDERIO_ACCESS_KEY` | No | Raider.io API access key |
 | `GOOGLE_SHEETS_GUILDS_CSV_URL` | No | Published CSV URL for dynamic guild config; falls back to hardcoded defaults |
+| `BLOB_READ_WRITE_TOKEN` | No | Vercel Blob token (set by connecting a Blob store); `/api/cron` keeps the previous run's WCL report codes there and alerts Discord when a guild's set shrinks. Absent = no comparison |
 
 ## Deployment
 
