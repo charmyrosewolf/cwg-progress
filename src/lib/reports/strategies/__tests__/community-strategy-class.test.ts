@@ -135,12 +135,33 @@ describe('CommunityStrategy.buildProgress', () => {
 // ─── buildSummary ───────────────────────────────────────────
 
 describe('CommunityStrategy.buildSummary', () => {
-  it('returns empty stats and no events when WCL rejects the query', async () => {
+  it('keeps a flagged, dash-only row when WCL rejects the query', async () => {
+    // postQuery resolves to null on auth failure / rate limit. The row must
+    // survive, flagged, instead of silently vanishing from the summary table.
     mockPostQuery.mockResolvedValue(null);
 
-    const result = await new CommunityStrategy().buildSummary(raid, community);
+    const { stats, events } = await new CommunityStrategy().buildSummary(
+      raid,
+      community
+    );
 
-    expect(result).toEqual({ stats: null, events: [] });
+    expect(events).toEqual([]);
+    expect(stats).not.toBeNull();
+    expect(stats!.guild).toBe(community);
+    expect(stats!.dataUnavailable).toBe(true);
+    expect(stats!.totalBosses).toBe(3);
+    expect(stats!.summaries.map((s) => s.summary)).toEqual(['-', '-', '-']);
+    expect(stats!.overallSummary.summary).toBe('-');
+    expect(stats!.currentProgression).toBe('Warcraft Logs unavailable');
+  });
+
+  it('does not flag the row when WCL answers', async () => {
+    respondWith([report([{ encounterID: 2902, difficulty: NORMAL, kill: true }])]);
+
+    const { stats } = await new CommunityStrategy().buildSummary(raid, community);
+
+    expect(stats!.dataUnavailable).toBeUndefined();
+    expect(stats!.overallSummary.summary).toBe('1/3 N');
   });
 
   it('returns null stats when the community has pulls but no kills', async () => {

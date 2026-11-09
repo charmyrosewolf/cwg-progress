@@ -312,6 +312,26 @@ export function buildProgressStatistics(
 
 // ─── CommunityStrategy ──────────────────────────────────────
 
+export const WCL_UNAVAILABLE_LABEL = 'Warcraft Logs unavailable';
+
+/** Placeholder row for when WCL couldn't be reached: dashes everywhere, flagged. */
+export function buildUnavailableStatistics(
+  raid: RaidInfo,
+  guild: GuildInfo
+): GuildRaidProgressStatistics {
+  const totalBosses = raid.encounters.length;
+  const summaries = createStatistics(totalBosses, 0, 0, 0);
+
+  return {
+    guild,
+    overallSummary: summaries[0],
+    totalBosses,
+    summaries,
+    currentProgression: WCL_UNAVAILABLE_LABEL,
+    dataUnavailable: true
+  };
+}
+
 export class CommunityStrategy implements GuildReportStrategy {
   async buildProgress(
     raid: RaidInfo,
@@ -352,7 +372,11 @@ export class CommunityStrategy implements GuildReportStrategy {
   ): Promise<SummaryResult> {
     const fights = await fetchWlogFights(raid, guild);
 
-    if (!fights) return { stats: null, events: [] };
+    // null = the fetch itself failed (429, auth), not "no kills". Keep the row,
+    // flagged, so the community doesn't vanish from the table for a whole ISR window.
+    if (!fights) {
+      return { stats: buildUnavailableStatistics(raid, guild), events: [] };
+    }
 
     const stats = buildProgressStatistics(raid, fights, guild);
 

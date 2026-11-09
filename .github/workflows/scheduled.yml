@@ -1,13 +1,23 @@
-name: Daily cron job
+name: Scheduled Tasks
+
 on:
   schedule:
-    - cron: '0 5 * * *'
+    - cron: '0 5 * * *' # Runs every day at 5am UTC
+
 jobs:
   cron:
     runs-on: ubuntu-latest
     steps:
       - name: Daily cron job
         run: |
-          curl --request POST \
-          --url 'https://cwg-progress.vercel.app/api/cron' \
-          --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}'
+          status=$(curl -sS --request POST \
+            --url 'https://cwg-progress.vercel.app/api/cron' \
+            --header 'Authorization: Bearer ${{ secrets.CRON_SECRET }}' \
+            --output response.json \
+            --write-out '%{http_code}')
+          echo "HTTP $status"
+          jq . response.json || cat response.json
+          case "$status" in
+            2*) ;;
+            *) echo "::error::/api/cron answered HTTP $status"; exit 1 ;;
+          esac

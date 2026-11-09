@@ -3,6 +3,9 @@ import { Table, Box, Text } from '@chakra-ui/react';
 import CustomLink from './custom-link';
 import { InfoOutlineIcon } from './chakra-components';
 
+const UNAVAILABLE_HINT =
+  'Warcraft Logs did not answer when this page was built. The row refreshes on the next rebuild.';
+
 type SummaryTableProps = {
   summaryReport: SummaryReport;
   maxWidth?: string;
@@ -13,13 +16,16 @@ export default function SummaryTable({
   maxWidth = '100%'
 }: SummaryTableProps) {
   const getCellData = (gp: GuildRaidProgressStatistics) => {
-    const difficulty =
-      gp.overallSummary.summary[gp.overallSummary.summary.length - 1]; // H, N or M
     const {
       currentProgression,
       summaries,
+      dataUnavailable,
       guild: { displayName, name, slug, profileUrl }
     } = gp;
+    // H, N or M; a placeholder row has no difficulty colour
+    const difficulty = dataUnavailable
+      ? undefined
+      : gp.overallSummary.summary[gp.overallSummary.summary.length - 1];
 
     const guildName = displayName || name;
 
@@ -45,7 +51,20 @@ export default function SummaryTable({
             </Table.Cell>
           );
         })}
-        <Table.Cell className={difficulty}>{currentProgression}</Table.Cell>
+        <Table.Cell className={difficulty}>
+          {dataUnavailable ? (
+            <Text
+              as='span'
+              fontStyle='italic'
+              color='fg.muted'
+              title={UNAVAILABLE_HINT}
+            >
+              {currentProgression}
+            </Text>
+          ) : (
+            currentProgression
+          )}
+        </Table.Cell>
       </>
     );
   };
